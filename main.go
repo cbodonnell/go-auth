@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -67,9 +68,47 @@ func connectDb(s DataSource) *sql.DB {
 
 // --- Templates --- //
 
-var templates = template.Must(template.ParseFiles("login.html"))
+var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 // --- Handlers -- //
+
+// register GET
+func registerPage(w http.ResponseWriter, r *http.Request) {
+	err := templates.ExecuteTemplate(w, "register.html", nil)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+}
+
+// register POST
+func register(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+	username := r.PostForm.Get("username")
+	// TODO: check if user exists
+
+	password := r.PostForm.Get("password")
+	confirmPassword := r.PostForm.Get("confirm-password")
+	if password != confirmPassword {
+		badRequest(w, errors.New("passwords do not match"))
+		return
+	}
+
+	hash, err := generateHash(password)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	// TODO: INSERT INTO users (username, hash, createdDate) VALUES ($1, $2, NOW());
+
+	fmt.Fprintln(w, "Username: "+username)
+	fmt.Fprintln(w, "Hashed PW: "+hash)
+}
 
 // login GET
 func loginPage(w http.ResponseWriter, r *http.Request) {
@@ -90,21 +129,17 @@ func login(w http.ResponseWriter, r *http.Request) {
 	username := r.PostForm.Get("username")
 	password := r.PostForm.Get("password")
 
-	hash, err := generateHash(password)
-	if err != nil {
-		internalServerError(w, err)
-		return
-	}
+	// TODO: SELECT hash FROM users WHERE username = $1;
+	hash := "$2a$14$V.N72q6u9MNOzkCbLdKOgOxW01mcrdXN0AuDDu5qWrv5ggUo0YnyC"
+	// If there is no hash, then the user does not exist
 
 	err = checkHash(hash, password)
 	if err != nil {
-		unauthorizedRequest(w, err)
+		unauthorizedRequest(w, errors.New("invalid credentials"))
 		return
 	}
 
-	// TODO: Store in users table
-	fmt.Fprintln(w, "Username: "+username)
-	fmt.Fprintln(w, "Hashed PW: "+hash)
+	fmt.Fprintln(w, fmt.Sprintf("Signed in as: %s", username))
 }
 
 // --- Crypto --- //
@@ -179,6 +214,8 @@ func main() {
 
 	// Route handlers
 
+	r.HandleFunc("/register", registerPage).Methods("GET")
+	r.HandleFunc("/register", register).Methods("POST")
 	r.HandleFunc("/login", loginPage).Methods("GET")
 	r.HandleFunc("/login", login).Methods("POST")
 
