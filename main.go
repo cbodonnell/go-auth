@@ -62,8 +62,8 @@ type User struct {
 
 // Auth struct
 type Auth struct {
-	User  User   `json:"user"`
-	Token string `json:"token"`
+	Username string `json:"username"`
+	Token    string `json:"token"`
 }
 
 // --- Data --- //
@@ -134,9 +134,11 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Create a registration successful page with href to login
-	fmt.Fprintln(w, "Registration successful!")
-	// json.NewEncoder(w).Encode(user)
+	err = templates.ExecuteTemplate(w, "registrationSuccessful.html", nil)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
 }
 
 // login GET
@@ -171,9 +173,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Create JWT
-	auth := &Auth{User: user, Token: "JWT"}
-
-	// fmt.Fprintln(w, "Signed in!")
+	auth := &Auth{Username: user.Username, Token: "JWT"}
 	json.NewEncoder(w).Encode(auth)
 }
 
