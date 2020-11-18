@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -20,13 +21,16 @@ import (
 var config Configuration
 
 func getConfig(ENV string) Configuration {
-	file, _ := os.Open(fmt.Sprintf("config.%s.json", ENV))
+	file, err := os.Open(fmt.Sprintf("config.%s.json", ENV))
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	config := Configuration{}
-	err := decoder.Decode(&config)
+	err = decoder.Decode(&config)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return config
 }
@@ -48,6 +52,20 @@ type DataSource struct {
 	Dbname   string `json:"dbname"`
 }
 
+// User struct
+type User struct {
+	ID       int       `json:"id"`
+	Username string    `json:"username"`
+	Password string    `json:"password"`
+	Created  time.Time `json:"created"`
+}
+
+// Auth struct
+type Auth struct {
+	User  User   `json:"user"`
+	Token string `json:"token"`
+}
+
 // --- Data --- //
 
 // db instance
@@ -60,7 +78,7 @@ func connectDb(s DataSource) *sql.DB {
 		s.Host, s.Port, s.User, s.Password, s.Dbname)
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	fmt.Printf("Connected to %s as %s\n", s.Dbname, s.User)
 	return db
@@ -89,7 +107,12 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	username := r.PostForm.Get("username")
-	// TODO: check if user exists
+	user, err := getUserByName(username)
+	if err == nil {
+		badRequest(w, errors.New("username already exists"))
+		return
+	}
+	user.Username = username
 
 	password := r.PostForm.Get("password")
 	confirmPassword := r.PostForm.Get("confirm-password")
@@ -98,16 +121,22 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := generateHash(password)
+	user.Password, err = generateHash(password)
 	if err != nil {
 		internalServerError(w, err)
 		return
 	}
 
-	// TODO: INSERT INTO users (username, hash, createdDate) VALUES ($1, $2, NOW());
+	user.Created = time.Now()
+	user, err = createUser(user)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
 
-	fmt.Fprintln(w, "Username: "+username)
-	fmt.Fprintln(w, "Hashed PW: "+hash)
+	// TODO: Create a registration successful page with href to login
+	fmt.Fprintln(w, "Registration successful!")
+	// json.NewEncoder(w).Encode(user)
 }
 
 // login GET
@@ -129,17 +158,23 @@ func login(w http.ResponseWriter, r *http.Request) {
 	username := r.PostForm.Get("username")
 	password := r.PostForm.Get("password")
 
-	// TODO: SELECT hash FROM users WHERE username = $1;
-	hash := "$2a$14$V.N72q6u9MNOzkCbLdKOgOxW01mcrdXN0AuDDu5qWrv5ggUo0YnyC"
-	// If there is no hash, then the user does not exist
+	user, err := getUserByName(username)
+	if err != nil {
+		badRequest(w, errors.New("user does not exist"))
+		return
+	}
 
-	err = checkHash(hash, password)
+	err = checkHash(user.Password, password)
 	if err != nil {
 		unauthorizedRequest(w, errors.New("invalid credentials"))
 		return
 	}
 
-	fmt.Fprintln(w, fmt.Sprintf("Signed in as: %s", username))
+	// TODO: Create JWT
+	auth := &Auth{User: user, Token: "JWT"}
+
+	// fmt.Fprintln(w, "Signed in!")
+	json.NewEncoder(w).Encode(auth)
 }
 
 // --- Crypto --- //
@@ -161,6 +196,28 @@ func generateHash(password string) (string, error) {
 func checkHash(hash, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err
+}
+
+// --- Queries --- //
+
+func getUserByName(username string) (User, error) {
+	sql := "SELECT * FROM users WHERE username = $1;"
+	var user User
+	err := db.QueryRow(sql, username).Scan(&user.ID, &user.Username, &user.Password, &user.Created)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
+}
+
+func createUser(user User) (User, error) {
+	sql := "INSERT INTO users (username, password, created) VALUES ($1, $2, $3) RETURNING id;"
+
+	err := db.QueryRow(sql, user.Username, user.Password, user.Created).Scan(&user.ID)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }
 
 // --- Responses --- //
