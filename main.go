@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -52,6 +51,12 @@ type DataSource struct {
 	Dbname   string `json:"dbname"`
 }
 
+// TemplateError struct
+type TemplateError struct {
+	Msg  string
+	Data interface{}
+}
+
 // User struct
 type User struct {
 	ID       int       `json:"id"`
@@ -88,15 +93,18 @@ func connectDb(s DataSource) *sql.DB {
 
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
+func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
+	err := templates.ExecuteTemplate(w, template, data)
+	if err != nil {
+		internalServerError(w, err)
+	}
+}
+
 // --- Handlers -- //
 
 // register GET
 func registerPage(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "register.html", nil)
-	if err != nil {
-		internalServerError(w, err)
-		return
-	}
+	renderTemplate(w, "register.html", nil)
 }
 
 // register POST
@@ -106,10 +114,12 @@ func register(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
+
 	username := r.PostForm.Get("username")
 	user, err := getUserByName(username)
 	if err == nil {
-		badRequest(w, errors.New("username already exists"))
+		templateError := TemplateError{Msg: "username already exists"}
+		renderTemplate(w, "register.html", templateError)
 		return
 	}
 	user.Username = username
@@ -117,7 +127,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 	confirmPassword := r.PostForm.Get("confirm-password")
 	if password != confirmPassword {
-		badRequest(w, errors.New("passwords do not match"))
+		templateError := TemplateError{Msg: "passwords do not match", Data: user}
+		renderTemplate(w, "register.html", templateError)
 		return
 	}
 
@@ -143,11 +154,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 // login GET
 func loginPage(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "login.html", nil)
-	if err != nil {
-		internalServerError(w, err)
-		return
-	}
+	renderTemplate(w, "login.html", nil)
 }
 
 // login POST
@@ -162,13 +169,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := getUserByName(username)
 	if err != nil {
-		badRequest(w, errors.New("user does not exist"))
+		templateError := TemplateError{Msg: "user does not exist"}
+		renderTemplate(w, "login.html", templateError)
 		return
 	}
 
 	err = checkHash(user.Password, password)
 	if err != nil {
-		unauthorizedRequest(w, errors.New("invalid credentials"))
+		templateError := TemplateError{Msg: "invalid credentials"}
+		renderTemplate(w, "login.html", templateError)
 		return
 	}
 
