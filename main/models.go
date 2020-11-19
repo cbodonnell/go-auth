@@ -1,11 +1,16 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
+)
 
 // Configuration struct
 type Configuration struct {
-	Debug bool       `json:"debug"`
-	Db    DataSource `json:"db"`
+	Debug  bool       `json:"debug"`
+	Db     DataSource `json:"db"`
+	JWTKey string     `json:"jwtKey"`
 }
 
 // DataSource struct
@@ -29,6 +34,18 @@ type User struct {
 	Username string    `json:"username"`
 	Password string    `json:"password"`
 	Created  time.Time `json:"created"`
+}
+
+// Group struct
+type Group struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// JWTClaims struct
+type JWTClaims struct {
+	Groups []Group `json:"groups"`
+	jwt.StandardClaims
 }
 
 // Auth struct

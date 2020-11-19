@@ -52,6 +52,7 @@ func main() {
 	r.HandleFunc("/register", register).Methods("POST")
 	r.HandleFunc("/login", loginPage).Methods("GET")
 	r.HandleFunc("/login", login).Methods("POST")
+	r.HandleFunc("/jwt", testJWT).Methods("GET")
 
 	// CORS
 	// handler := cors.Default().Handler(r)

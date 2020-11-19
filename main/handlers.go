@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"net/http"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 var templates = template.Must(template.ParseGlob("templates/*.html"))
@@ -95,7 +97,58 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Create JWT
-	auth := &Auth{Username: user.Username, Token: "JWT"}
-	json.NewEncoder(w).Encode(auth)
+	groups, err := getUserGroups(user.ID)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+	// TODO: Refactor into crypto.go
+	// Create a new token object, specifying signing method and the claims
+	// you would like it to contain.
+	expirationTime := time.Now().Add(5 * time.Minute)
+	claims := JWTClaims{
+		groups,
+		jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+			Issuer:    "dev",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString([]byte(config.JWTKey))
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	w.Header().Set("Set-Cookie", "jwt="+tokenString)
+	auth := &Auth{Username: user.Username, Token: tokenString}
+	err = templates.ExecuteTemplate(w, "welcome.html", auth)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+}
+
+// GET /jwt
+func testJWT(w http.ResponseWriter, r *http.Request) {
+	jwtCookie, err := r.Cookie("jwt")
+	if err != nil {
+		unauthorizedRequest(w, err)
+		return
+	}
+	tokenString := jwtCookie.Value
+
+	claims := &JWTClaims{}
+	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.JWTKey), nil
+	})
+	if err != nil {
+		unauthorizedRequest(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(claims)
 }

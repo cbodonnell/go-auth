@@ -6,5 +6,6 @@
         "user": "user",
         "password": "password",
         "dbname": "database"
-    }
+    },
+    "jwtKey": "secret"
 }

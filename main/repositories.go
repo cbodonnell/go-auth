@@ -44,3 +44,32 @@ func createUser(user User) (User, error) {
 	}
 	return user, nil
 }
+
+func getUserGroups(userID int) ([]Group, error) {
+	sql := `SELECT groups.id, groups.name
+	FROM groups 
+	INNER JOIN user_groups 
+	ON user_groups.group_id = groups.id
+	INNER JOIN users
+	ON users.id = user_groups.user_id
+	WHERE users.id = $1;`
+	rows, err := db.Query(sql, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var groups []Group
+	for rows.Next() {
+		var group Group
+		err = rows.Scan(&group.ID, &group.Name)
+		if err != nil {
+			return groups, err
+		}
+		groups = append(groups, group)
+	}
+	err = rows.Err()
+	if err != nil {
+		return groups, err
+	}
+	return groups, nil
+}
