@@ -5,8 +5,6 @@ import (
 	"html/template"
 	"net/http"
 	"time"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 var templates = template.Must(template.ParseGlob("templates/*.html"))
@@ -102,21 +100,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
-	// TODO: Refactor into crypto.go
-	// Create a new token object, specifying signing method and the claims
-	// you would like it to contain.
-	expirationTime := time.Now().Add(5 * time.Minute)
-	claims := JWTClaims{
-		groups,
-		jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-			Issuer:    "dev",
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString([]byte(config.JWTKey))
+	tokenString, err := createJWT(user.Username, groups)
 	if err != nil {
 		internalServerError(w, err)
 		return
@@ -140,10 +125,7 @@ func testJWT(w http.ResponseWriter, r *http.Request) {
 	}
 	tokenString := jwtCookie.Value
 
-	claims := &JWTClaims{}
-	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.JWTKey), nil
-	})
+	claims, err := getClaims(tokenString)
 	if err != nil {
 		unauthorizedRequest(w, err)
 		return

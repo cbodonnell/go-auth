@@ -44,7 +44,8 @@ type Group struct {
 
 // JWTClaims struct
 type JWTClaims struct {
-	Groups []Group `json:"groups"`
+	Username string `json:"username"`
+	Groups []Group  `json:"groups"`
 	jwt.StandardClaims
 }
 

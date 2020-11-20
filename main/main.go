@@ -47,7 +47,6 @@ func main() {
 	r := mux.NewRouter()
 
 	// Route handlers
-
 	r.HandleFunc("/register", registerPage).Methods("GET")
 	r.HandleFunc("/register", register).Methods("POST")
 	r.HandleFunc("/login", loginPage).Methods("GET")
@@ -60,6 +59,5 @@ func main() {
 	// Run server
 	port := 8080
 	fmt.Println(fmt.Sprintf("Serving on port %d", port))
-
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 }
