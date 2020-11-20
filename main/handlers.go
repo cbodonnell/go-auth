@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"html/template"
 	"net/http"
 	"time"
@@ -16,12 +15,24 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 	}
 }
 
-// register GET
+// / GET
+func home(w http.ResponseWriter, r *http.Request) {
+	claims, err := checkClaims(r)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	auth := &Auth{Username: claims.Username, Groups: claims.Groups}
+	renderTemplate(w, "index.html", auth)
+}
+
+// /register GET
 func registerPage(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "register.html", nil)
 }
 
-// register POST
+// /register POST
 func register(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -66,12 +77,18 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// login GET
+// /login GET
 func loginPage(w http.ResponseWriter, r *http.Request) {
+	_, err := checkClaims(r)
+	if err == nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
 	renderTemplate(w, "login.html", nil)
 }
 
-// login POST
+// /login POST
 func login(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -107,30 +124,24 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Set-Cookie", "jwt="+tokenString)
-	auth := &Auth{Username: user.Username, Token: tokenString}
-	err = templates.ExecuteTemplate(w, "welcome.html", auth)
-	if err != nil {
-		internalServerError(w, err)
-		return
+	jwtCookie := &http.Cookie{
+		Name:     "jwt",
+		Value:    tokenString,
+		Expires:  time.Now().Add(5 * time.Minute),
+		HttpOnly: true,
 	}
+	http.SetCookie(w, jwtCookie)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// GET /jwt
-func testJWT(w http.ResponseWriter, r *http.Request) {
-	jwtCookie, err := r.Cookie("jwt")
-	if err != nil {
-		unauthorizedRequest(w, err)
-		return
+// /logout GET
+func logout(w http.ResponseWriter, r *http.Request) {
+	jwtCookie := &http.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		Expires:  time.Now(),
+		HttpOnly: true,
 	}
-	tokenString := jwtCookie.Value
-
-	claims, err := getClaims(tokenString)
-	if err != nil {
-		unauthorizedRequest(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(claims)
+	http.SetCookie(w, jwtCookie)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

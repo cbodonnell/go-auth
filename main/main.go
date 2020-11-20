@@ -47,11 +47,12 @@ func main() {
 	r := mux.NewRouter()
 
 	// Route handlers
+	r.HandleFunc("/", home).Methods("GET")
 	r.HandleFunc("/register", registerPage).Methods("GET")
 	r.HandleFunc("/register", register).Methods("POST")
 	r.HandleFunc("/login", loginPage).Methods("GET")
 	r.HandleFunc("/login", login).Methods("POST")
-	r.HandleFunc("/jwt", testJWT).Methods("GET")
+	r.HandleFunc("/logout", logout).Methods("GET")
 
 	// CORS
 	// handler := cors.Default().Handler(r)

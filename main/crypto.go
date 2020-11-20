@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -41,10 +42,19 @@ func createJWT(username string, groups []Group) (string, error) {
 	return tokenString, err
 }
 
-func getClaims(tokenString string) (*JWTClaims, error) {
+func checkClaims(r *http.Request) (*JWTClaims, error) {
+	jwtCookie, err := r.Cookie("jwt")
+	if err != nil {
+		return nil, err
+	}
+	tokenString := jwtCookie.Value
+
 	claims := &JWTClaims{}
-	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.JWTKey), nil
 	})
-	return claims, err
+	if err != nil {
+		return claims, err
+	}
+	return claims, nil
 }

@@ -44,13 +44,13 @@ type Group struct {
 
 // JWTClaims struct
 type JWTClaims struct {
-	Username string `json:"username"`
-	Groups []Group  `json:"groups"`
+	Username string  `json:"username"`
+	Groups   []Group `json:"groups"`
 	jwt.StandardClaims
 }
 
 // Auth struct
 type Auth struct {
-	Username string `json:"username"`
-	Token    string `json:"token"`
+	Username string  `json:"username"`
+	Groups   []Group `json:"groups"`
 }
