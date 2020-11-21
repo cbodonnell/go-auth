@@ -29,6 +29,11 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 // /register GET
 func registerPage(w http.ResponseWriter, r *http.Request) {
+	_, err := checkClaims(r)
+	if err == nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	renderTemplate(w, "register.html", nil)
 }
 
@@ -127,11 +132,79 @@ func login(w http.ResponseWriter, r *http.Request) {
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    tokenString,
-		Expires:  time.Now().Add(5 * time.Minute),
+		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,
 	}
 	http.SetCookie(w, jwtCookie)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// /password GET
+func passwordPage(w http.ResponseWriter, r *http.Request) {
+	_, err := checkClaims(r)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	renderTemplate(w, "password.html", nil)
+}
+
+// /password POST
+func password(w http.ResponseWriter, r *http.Request) {
+	claims, err := checkClaims(r)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		badRequest(w, err)
+		return
+	}
+	currentPassword := r.PostForm.Get("current-password")
+	newPassword := r.PostForm.Get("new-password")
+	confirmPassword := r.PostForm.Get("confirm-password")
+
+	if newPassword == currentPassword {
+		templateError := TemplateError{Msg: "new password is the same as current password"}
+		renderTemplate(w, "password.html", templateError)
+		return
+	}
+
+	if newPassword != confirmPassword {
+		templateError := TemplateError{Msg: "passwords do not match"}
+		renderTemplate(w, "password.html", templateError)
+		return
+	}
+
+	user, err := getUserByName(claims.Username)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	err = checkHash(user.Password, currentPassword)
+	if err != nil {
+		templateError := TemplateError{Msg: "current password incorrect"}
+		renderTemplate(w, "password.html", templateError)
+		return
+	}
+
+	password, err := generateHash(newPassword)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	err = updatePassword(user.ID, password)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	renderTemplate(w, "passwordChanged.html", nil)
 }
 
 // /logout GET

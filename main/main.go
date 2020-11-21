@@ -52,6 +52,8 @@ func main() {
 	r.HandleFunc("/register", register).Methods("POST")
 	r.HandleFunc("/login", loginPage).Methods("GET")
 	r.HandleFunc("/login", login).Methods("POST")
+	r.HandleFunc("/password", passwordPage).Methods("GET")
+	r.HandleFunc("/password", password).Methods("POST")
 	r.HandleFunc("/logout", logout).Methods("GET")
 
 	// CORS

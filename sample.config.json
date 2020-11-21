@@ -7,5 +7,6 @@
         "password": "password",
         "dbname": "database"
     },
-    "jwtKey": "secret"
+    "jwtKey": "secret",
+    "jwtExpiration": 20
 }

@@ -28,7 +28,7 @@ func checkHash(hash, password string) error {
 }
 
 func createJWT(username string, groups []Group) (string, error) {
-	expirationTime := time.Now().Add(5 * time.Minute)
+	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
 	claims := JWTClaims{
 		username,
 		groups,

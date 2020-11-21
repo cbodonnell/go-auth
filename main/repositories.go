@@ -73,3 +73,13 @@ func getUserGroups(userID int) ([]Group, error) {
 	}
 	return groups, nil
 }
+
+func updatePassword(userID int, password string) error {
+	sql := "UPDATE users SET password = $1 WHERE id = $2;"
+
+	_, err := db.Exec(sql, password, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
