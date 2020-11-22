@@ -55,3 +55,10 @@ type Auth struct {
 	Username string  `json:"username"`
 	Groups   []Group `json:"groups"`
 }
+
+// Success struct
+type Success struct {
+	Title    string
+	Route    string
+	RouteMsg string
+}

@@ -19,10 +19,9 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 func home(w http.ResponseWriter, r *http.Request) {
 	claims, err := checkClaims(r)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		renderTemplate(w, "index.html", nil)
 		return
 	}
-
 	auth := &Auth{Username: claims.Username, Groups: claims.Groups}
 	renderTemplate(w, "index.html", auth)
 }
@@ -75,11 +74,12 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = templates.ExecuteTemplate(w, "registrationSuccessful.html", nil)
-	if err != nil {
-		internalServerError(w, err)
-		return
+	success := &Success{
+		Title:    "Registration Successful",
+		Route:    "/login",
+		RouteMsg: "to login",
 	}
+	renderTemplate(w, "success.html", success)
 }
 
 // /login GET
@@ -143,7 +143,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 func passwordPage(w http.ResponseWriter, r *http.Request) {
 	_, err := checkClaims(r)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -154,7 +154,7 @@ func passwordPage(w http.ResponseWriter, r *http.Request) {
 func password(w http.ResponseWriter, r *http.Request) {
 	claims, err := checkClaims(r)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -204,11 +204,22 @@ func password(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderTemplate(w, "passwordChanged.html", nil)
+	success := &Success{
+		Title:    "Password Changed",
+		Route:    "/",
+		RouteMsg: "to return home",
+	}
+	renderTemplate(w, "success.html", success)
 }
 
 // /logout GET
 func logout(w http.ResponseWriter, r *http.Request) {
+	_, err := checkClaims(r)
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    "",
@@ -216,5 +227,11 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, jwtCookie)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	success := &Success{
+		Title:    "Logged out",
+		Route:    "/",
+		RouteMsg: "to return home",
+	}
+	renderTemplate(w, "success.html", success)
 }
