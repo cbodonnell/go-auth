@@ -21,7 +21,7 @@ func getConfig(ENV string) Configuration {
 	}
 	defer file.Close()
 	decoder := json.NewDecoder(file)
-	config := Configuration{}
+	var config Configuration
 	err = decoder.Decode(&config)
 	if err != nil {
 		log.Fatal(err)
@@ -42,6 +42,7 @@ func main() {
 
 	db = connectDb(config.Db)
 	defer db.Close()
+	pingDb(db)
 
 	// Init router
 	r := mux.NewRouter()

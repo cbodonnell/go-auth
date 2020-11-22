@@ -25,6 +25,14 @@ func connectDb(s DataSource) *sql.DB {
 	return db
 }
 
+// ping db
+func pingDb(db *sql.DB) {
+	err := db.Ping()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func getUserByName(username string) (User, error) {
 	sql := "SELECT * FROM users WHERE username = $1;"
 	var user User
