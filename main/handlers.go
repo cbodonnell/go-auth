@@ -44,6 +44,14 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hCaptchaResponse := r.PostForm.Get("h-captcha-response")
+	err = validateCaptcha(hCaptchaResponse)
+	if err != nil {
+		templateError := TemplateError{Msg: "please verify you are human"}
+		renderTemplate(w, "register.html", templateError)
+		return
+	}
+
 	username := r.PostForm.Get("username")
 	user, err := getUserByName(username)
 	if err == nil {

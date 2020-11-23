@@ -8,5 +8,6 @@
         "dbname": "database"
     },
     "jwtKey": "secret",
-    "jwtExpiration": 20
+    "jwtExpiration": 20,
+    "hCaptchaSecret": "secret"
 }

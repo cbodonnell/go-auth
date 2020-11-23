@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
+    <script src="https://hcaptcha.com/1/api.js" async defer></script>
 </head>
 <body>
     <form action="/register" method="POST">
@@ -19,6 +20,8 @@
         <p>Confirm Password:</p>
         <input type="password" name="confirm-password" id="confirm-password" required>
         <br><br>
+        <div class="h-captcha" data-sitekey="ae2d6542-a3c2-44a3-a2c0-b05d29212ceb"></div>
+        <br>
         <button type="submit">Submit</button>
     </form>
     <p>Returning user? <a href="/login">Click here</a> to login.</p>

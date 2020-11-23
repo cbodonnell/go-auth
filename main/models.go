@@ -8,10 +8,11 @@ import (
 
 // Configuration struct
 type Configuration struct {
-	Debug         bool          `json:"debug"`
-	Db            DataSource    `json:"db"`
-	JWTKey        string        `json:"jwtKey"`
-	JWTExpiration time.Duration `json:"jwtExpiration"`
+	Debug          bool          `json:"debug"`
+	Db             DataSource    `json:"db"`
+	JWTKey         string        `json:"jwtKey"`
+	JWTExpiration  time.Duration `json:"jwtExpiration"`
+	HCaptchaSecret string        `json:"hCaptchaSecret"`
 }
 
 // DataSource struct
@@ -61,4 +62,9 @@ type Success struct {
 	Title    string
 	Route    string
 	RouteMsg string
+}
+
+// HCaptchaValidation struct
+type HCaptchaValidation struct {
+	Success bool `json:"success"`
 }
