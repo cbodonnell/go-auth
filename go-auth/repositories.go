@@ -50,6 +50,13 @@ func createUser(user User) (User, error) {
 	if err != nil {
 		return user, err
 	}
+
+	sql = "INSERT INTO user_groups (user_id, group_id) VALUES ($1, 1);"
+	_, err = db.Exec(sql, user.ID)
+	if err != nil {
+		return user, err
+	}
+
 	return user, nil
 }
 
