@@ -61,11 +61,7 @@ func main() {
 	// handler := cors.Default().Handler(r)
 
 	// Run server
-	port := config.Port
+	port := 8080
 	fmt.Println(fmt.Sprintf("Serving on port %d", port))
-
-	if ENV == "dev" {
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
-	}
-	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCert, config.SSLKey, r))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 }

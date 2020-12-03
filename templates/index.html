@@ -15,12 +15,12 @@
         <li>{{$group.Name}}</li>
         {{end}}
     </ul>
-    <p><a href="/password">Click here</a> to change your password.</p>
-    <p><a href="/logout">Click here</a> to logout.</p>
+    <p><a href="/auth/password">Click here</a> to change your password.</p>
+    <p><a href="/auth/logout">Click here</a> to logout.</p>
     {{ else }}
     <p>You are not logged in.</p>
-    <p><a href="/login">Click here</a> to login.</p>
-    <p><a href="/register">Click here</a> to register.</p>
+    <p><a href="/auth/login">Click here</a> to login.</p>
+    <p><a href="/auth/register">Click here</a> to register.</p>
     {{ end }}
 </body>
 </html>

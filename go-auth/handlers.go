@@ -30,7 +30,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 func registerPage(w http.ResponseWriter, r *http.Request) {
 	_, err := checkClaims(r)
 	if err == nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
 	renderTemplate(w, "register.html", nil)
@@ -84,7 +84,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 	success := &Success{
 		Title:    "Registration Successful",
-		Route:    "/login",
+		Route:    "/auth/login",
 		RouteMsg: "to login",
 	}
 	renderTemplate(w, "success.html", success)
@@ -94,7 +94,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	_, err := checkClaims(r)
 	if err == nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
 
@@ -144,14 +144,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, jwtCookie)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 }
 
 // /password GET
 func passwordPage(w http.ResponseWriter, r *http.Request) {
 	_, err := checkClaims(r)
 	if err != nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
 
@@ -162,7 +162,7 @@ func passwordPage(w http.ResponseWriter, r *http.Request) {
 func password(w http.ResponseWriter, r *http.Request) {
 	claims, err := checkClaims(r)
 	if err != nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
 
@@ -214,7 +214,7 @@ func password(w http.ResponseWriter, r *http.Request) {
 
 	success := &Success{
 		Title:    "Password Changed",
-		Route:    "/",
+		Route:    "/auth/",
 		RouteMsg: "to return home",
 	}
 	renderTemplate(w, "success.html", success)
@@ -224,7 +224,7 @@ func password(w http.ResponseWriter, r *http.Request) {
 func logout(w http.ResponseWriter, r *http.Request) {
 	_, err := checkClaims(r)
 	if err != nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
 
@@ -238,7 +238,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 	success := &Success{
 		Title:    "Logged out",
-		Route:    "/",
+		Route:    "/auth/",
 		RouteMsg: "to return home",
 	}
 	renderTemplate(w, "success.html", success)
