@@ -1,0 +1,16 @@
+{
+    "debug": true,
+    "port": 8080,
+    "sslCert": "",
+    "sslKey": "",
+    "db": {
+        "host": "address",
+        "port": 5432,
+        "user": "user",
+        "password": "password",
+        "dbname": "database"
+    },
+    "jwtKey": "secret",
+    "jwtExpiration":20,
+    "hCaptchaSecret": "secret"
+}
