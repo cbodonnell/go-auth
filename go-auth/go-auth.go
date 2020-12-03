@@ -64,8 +64,8 @@ func main() {
 	port := config.Port
 	fmt.Println(fmt.Sprintf("Serving on port %d", port))
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
-	if ENV == "prod" {
-		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCert, config.SSLKey, r))
+	if ENV == "dev" {
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 	}
+	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCert, config.SSLKey, r))
 }
