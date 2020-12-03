@@ -142,6 +142,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Value:    tokenString,
 		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,
+		Secure:   true,
 	}
 	http.SetCookie(w, jwtCookie)
 	http.Redirect(w, r, "/auth/", http.StatusSeeOther)
