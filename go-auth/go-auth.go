@@ -61,7 +61,7 @@ func main() {
 	// handler := cors.Default().Handler(r)
 
 	// Run server
-	port := 8080
+	port := config.Port
 	fmt.Println(fmt.Sprintf("Serving on port %d", port))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 }

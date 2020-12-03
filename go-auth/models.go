@@ -9,6 +9,7 @@ import (
 // Configuration struct
 type Configuration struct {
 	Debug          bool          `json:"debug"`
+	Port	       int           `json:"port"`
 	Db             DataSource    `json:"db"`
 	JWTKey         string        `json:"jwtKey"`
 	JWTExpiration  time.Duration `json:"jwtExpiration"`
