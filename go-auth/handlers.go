@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"time"
@@ -19,11 +20,11 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 func home(w http.ResponseWriter, r *http.Request) {
 	claims, err := checkClaims(r)
 	if err != nil {
-		renderTemplate(w, "index.html", nil)
+		unauthorizedRequest(w, err)
 		return
 	}
 	auth := &Auth{Username: claims.Username, Groups: claims.Groups}
-	renderTemplate(w, "index.html", auth)
+	json.NewEncoder(w).Encode(auth)
 }
 
 // /register GET
@@ -108,20 +109,18 @@ func login(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	username := r.PostForm.Get("username")
-	password := r.PostForm.Get("password")
+	username := r.Form.Get("username")
+	password := r.Form.Get("password")
 
 	user, err := getUserByName(username)
 	if err != nil {
-		templateError := TemplateError{Msg: "user does not exist"}
-		renderTemplate(w, "login.html", templateError)
+		badRequest(w, err)
 		return
 	}
 
 	err = checkHash(user.Password, password)
 	if err != nil {
-		templateError := TemplateError{Msg: "invalid credentials"}
-		renderTemplate(w, "login.html", templateError)
+		badRequest(w, err)
 		return
 	}
 
