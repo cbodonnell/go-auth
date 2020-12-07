@@ -48,16 +48,14 @@ func register(w http.ResponseWriter, r *http.Request) {
 	hCaptchaResponse := r.PostForm.Get("h-captcha-response")
 	err = validateCaptcha(hCaptchaResponse)
 	if err != nil {
-		templateError := TemplateError{Msg: "please verify you are human"}
-		renderTemplate(w, "register.html", templateError)
+		badRequest(w, err)
 		return
 	}
 
 	username := r.PostForm.Get("username")
 	user, err := getUserByName(username)
 	if err == nil {
-		templateError := TemplateError{Msg: "username already exists"}
-		renderTemplate(w, "register.html", templateError)
+		badRequest(w, err)
 		return
 	}
 	user.Username = username
@@ -65,8 +63,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 	confirmPassword := r.PostForm.Get("confirm-password")
 	if password != confirmPassword {
-		templateError := TemplateError{Msg: "passwords do not match", Data: user}
-		renderTemplate(w, "register.html", templateError)
+		badRequest(w, err)
 		return
 	}
 
@@ -83,12 +80,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	success := &Success{
-		Title:    "Registration Successful",
-		Route:    "/auth/login",
-		RouteMsg: "to login",
-	}
-	renderTemplate(w, "success.html", success)
+	// return
 }
 
 // /login GET
@@ -114,13 +106,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := getUserByName(username)
 	if err != nil {
-		badRequest(w, err)
+		unauthorizedRequest(w, err)
 		return
 	}
 
 	err = checkHash(user.Password, password)
 	if err != nil {
-		badRequest(w, err)
+		unauthorizedRequest(w, err)
 		return
 	}
 
