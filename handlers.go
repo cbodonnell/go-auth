@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"html/template"
 	"net/http"
 	"time"
@@ -80,8 +81,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
-
-	// return
 }
 
 // /login GET
@@ -171,14 +170,12 @@ func password(w http.ResponseWriter, r *http.Request) {
 	confirmPassword := r.PostForm.Get("confirm-password")
 
 	if newPassword == currentPassword {
-		templateError := TemplateError{Msg: "new password is the same as current password"}
-		renderTemplate(w, "password.html", templateError)
+		badRequest(w, errors.New("new password is the same as current password"))
 		return
 	}
 
 	if newPassword != confirmPassword {
-		templateError := TemplateError{Msg: "passwords do not match"}
-		renderTemplate(w, "password.html", templateError)
+		badRequest(w, errors.New("passwords do not match"))
 		return
 	}
 
@@ -190,8 +187,7 @@ func password(w http.ResponseWriter, r *http.Request) {
 
 	err = checkHash(user.Password, currentPassword)
 	if err != nil {
-		templateError := TemplateError{Msg: "current password incorrect"}
-		renderTemplate(w, "password.html", templateError)
+		badRequest(w, errors.New("current password is incorrect"))
 		return
 	}
 
@@ -206,13 +202,6 @@ func password(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
-
-	success := &Success{
-		Title:    "Password Changed",
-		Route:    "/auth/",
-		RouteMsg: "to return home",
-	}
-	renderTemplate(w, "success.html", success)
 }
 
 // /logout GET
