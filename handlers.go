@@ -24,6 +24,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	auth := &Auth{Username: claims.Username, Groups: claims.Groups}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(auth)
 }
 
