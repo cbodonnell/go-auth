@@ -131,6 +131,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    tokenString,
+		Path:     "/",
 		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,
 	}
@@ -215,6 +216,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    "",
+		Path:     "/",
 		Expires:  time.Now(),
 		HttpOnly: true,
 	}
