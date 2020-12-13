@@ -59,18 +59,19 @@ func main() {
 	r.HandleFunc("/auth/logout", logout).Methods("GET")
 
 	// CORS in dev environment
-	handler := cors.New(cors.Options{
+	cors := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000", "http://127.0.0.1:3000"},
 		AllowCredentials: true,
 		// Debug: true,
-	}).Handler(r)
+	}).Handler
 
 	// Run server
 	port := config.Port
 	fmt.Println(fmt.Sprintf("Serving on port %d", port))
 
 	if ENV == "dev" {
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), handler))
+		r.Use(cors)
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 	}
 	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCert, config.SSLKey, r))
 }
