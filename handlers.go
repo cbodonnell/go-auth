@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"time"
@@ -222,10 +223,5 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, jwtCookie)
 
-	success := &Success{
-		Title:    "Logged out",
-		Route:    "/auth/",
-		RouteMsg: "to return home",
-	}
-	renderTemplate(w, "success.html", success)
+	fmt.Fprintln(w, "Logged out")
 }
