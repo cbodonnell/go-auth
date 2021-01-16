@@ -12,7 +12,7 @@ pipeline {
             steps {
                 echo 'building...'
                 sh 'echo $GOROOT'
-                sh 'GOROOT/bin/go build'
+                sh '$GOROOT/bin/go build'
             }
         }
         stage('test') {
