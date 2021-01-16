@@ -1,10 +1,12 @@
 pipeline {
     agent any
-    tools {
-        go 'go-1.15.6'
-    }
     stages {
         stage('build') {
+            agent {
+                tools {
+                    go 'go-1.15.6'
+                }
+            }
             steps {
                 echo 'building...'
                 sh 'go build'
