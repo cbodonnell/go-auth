@@ -1,10 +1,7 @@
 pipeline {
     agent any
-    tools {
-        // Run on an agent where we want to use Go
-        node {
-            label 'go'
-
+    stages {
+        stage('build') {
             // Ensure the desired Go version is installed
             def root = tool type: 'go', name: 'go-1.15.6'
 
@@ -12,10 +9,6 @@ pipeline {
             withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin"]) {
                 sh 'go version'
             }
-        }
-    }
-    stages {
-        stage('build') {
             steps {
                 echo 'building...'
                 sh 'go build'
