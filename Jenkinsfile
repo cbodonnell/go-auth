@@ -1,22 +1,28 @@
-pipeline {
-    agent { docker { image 'golang' } }
-    stages {
+node {
+    // Ensure the desired Go version is installed
+    def root = tool type: 'go', name: 'Go 1.15'
+
+    // Export environment variables pointing to the directory where Go was installed
+    withEnv(["GOROOT=${root}", "GOPATH=${root}/go", "PATH+GO=${root}/bin"]) {
+        sh '$GOROOT/go/bin/go version'
+    }
+    // stages {
         stage('build') {
-            steps {
+            // steps {
                 echo 'building...'
-                sh 'go build'
-            }
+                sh '$GOROOT/go/bin/go build'
+            // }
         }
         stage('test') {
-            steps {
+            // steps {
                 echo 'testing...'
-            }
+            // }
         }
         stage('deploy') {
-            steps {
+            // steps {
                 echo 'deploying...'
-                sh 'sudo cp go-auth /usr/local/bin/go-auth'
-            }
+                sh 'sudo cp go-auth /home/craig/go/src/go-auth/go-auth'
+            // }
         }
     }
     post {
