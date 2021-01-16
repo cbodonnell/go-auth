@@ -2,14 +2,14 @@ pipeline {
     agent any
     stages {
         stage('build') {
-            agent {
+            node {
                 tools {
                     go 'go-1.15.6'
                 }
-            }
-            steps {
-                echo 'building...'
-                sh 'go build'
+                steps {
+                    echo 'building...'
+                    sh 'go build'
+                }
             }
         }
         stage('test') {
