@@ -23,7 +23,7 @@ pipeline {
         stage('deploy') {
             steps {
                 echo 'deploying...'
-                sh 'sudo cp go-auth /usr/local/bin/go-auth'
+                sh 'sudo cp go-auth /home/craig/go/src/go-auth/go-auth'
             }
         }
     }
