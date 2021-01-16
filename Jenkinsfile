@@ -1,11 +1,5 @@
 pipeline {
-    agent any
-    tools {
-        go 'go1.15.6.linux-armv6l'
-    }
-    environment {
-        GO111MODULE = 'on'
-    }
+    agent { docker { image 'golang' } }
     stages {
         stage('build') {
             steps {
