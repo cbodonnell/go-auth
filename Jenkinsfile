@@ -4,14 +4,15 @@ pipeline {
     //     go 'go1.15.6.linux-armv6l'
     // }
     environment {
-        GOROOT = tool type: 'go', name: 'go1.15.6.linux-armv6l'
+        GOROOT = "${tool type: 'go', name: 'go1.15.6.linux-armv6l'}/go"
+        // GOPATH
     }
     stages {
         stage('build') {
             steps {
                 echo 'building...'
                 sh 'echo $GOROOT'
-                sh 'go build'
+                sh 'GOROOT/bin/go build'
             }
         }
         stage('test') {
