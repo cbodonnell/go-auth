@@ -24,6 +24,7 @@ pipeline {
             steps {
                 echo 'deploying...'
                 sh 'sudo cp go-auth /home/craig/go/src/go-auth/go-auth'
+                sh 'sudo systemctl restart go-auth'
             }
         }
     }
