@@ -1,5 +1,6 @@
 pipeline {
-    agent {
+    agent any
+    tools {
         // Run on an agent where we want to use Go
         node {
             label 'go'
