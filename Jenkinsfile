@@ -5,25 +5,25 @@ node {
     // Export environment variables pointing to the directory where Go was installed
     withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin"]) {
         sh '$GOROOT/go/bin/go version'
-        stages {
-            stage('build') {
-                steps {
-                    echo 'building...'
-                    sh '$GOROOT/go/bin/go build'
-                }
-            }
-            stage('test') {
-                steps {
-                    echo 'testing...'
-                }
-            }
-            stage('deploy') {
-                steps {
-                    echo 'deploying...'
-                    sh 'sudo cp go-auth /usr/local/bin/go-auth'
-                }
+        // stages {
+        stage('build') {
+            steps {
+                echo 'building...'
+                sh '$GOROOT/go/bin/go build'
             }
         }
+        stage('test') {
+            steps {
+                echo 'testing...'
+            }
+        }
+        stage('deploy') {
+            steps {
+                echo 'deploying...'
+                sh 'sudo cp go-auth /usr/local/bin/go-auth'
+            }
+        }
+        // }
         post {
             cleanup {
                 deleteDir()
