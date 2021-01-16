@@ -7,21 +7,21 @@ node {
         sh '$GOROOT/go/bin/go version'
         // stages {
         stage('build') {
-            steps {
+            // steps {
                 echo 'building...'
                 sh '$GOROOT/go/bin/go build'
-            }
+            // }
         }
         stage('test') {
-            steps {
+            // steps {
                 echo 'testing...'
-            }
+            // }
         }
         stage('deploy') {
-            steps {
+            // steps {
                 echo 'deploying...'
                 sh 'sudo cp go-auth /usr/local/bin/go-auth'
-            }
+            // }
         }
         // }
         post {
