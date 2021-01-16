@@ -24,7 +24,7 @@ node {
                 sh 'sudo cp go-auth /home/craig/go/src/go-auth/go-auth'
             // }
         }
-    }
+    // }
     post {
         cleanup {
             deleteDir()
