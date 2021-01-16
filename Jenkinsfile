@@ -3,7 +3,7 @@ node {
     def root = tool type: 'go', name: 'go1.15.6.linux-armv6l'
 
     // Export environment variables pointing to the directory where Go was installed
-    withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin"]) {
+    withEnv(["GOROOT=${root}", "GOPATH=${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_ID}/", "PATH+GO=${root}/bin"]) {
         sh '$GOROOT/go/bin/go version'
         // stages {
         stage('build') {
