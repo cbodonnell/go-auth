@@ -4,7 +4,8 @@ node {
 
     // Export environment variables pointing to the directory where Go was installed
     withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin"]) {
-        sh '$PATH+GO/go version'
+        echo '$GOROOT'
+        sh '$GOROOT/bin/go version'
     }
     agent any
     stages {
