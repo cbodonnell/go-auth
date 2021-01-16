@@ -23,7 +23,8 @@ pipeline {
         stage('deploy') {
             steps {
                 echo 'deploying...'
-                sh 'sudo cp go-auth /usr/sbin/go-auth'
+                sh 'sudo cp go-auth /usr/local/bin/go-auth'
+                sh 'sudo chmod 744 /usr/local/bin/go-auth'
                 sh 'sudo systemctl restart go-auth'
             }
         }
