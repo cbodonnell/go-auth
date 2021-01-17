@@ -9,9 +9,9 @@ import (
 // Configuration struct
 type Configuration struct {
 	Debug          bool          `json:"debug"`
-	Port	       int           `json:"port"`
-	SSLCert		   string 		 `json:"sslCert"`
-	SSLKey		   string 		 `json:"sslKey"`
+	Port           int           `json:"port"`
+	SSLCert        string        `json:"sslCert"`
+	SSLKey         string        `json:"sslKey"`
 	Db             DataSource    `json:"db"`
 	JWTKey         string        `json:"jwtKey"`
 	JWTExpiration  time.Duration `json:"jwtExpiration"`
@@ -35,10 +35,11 @@ type TemplateError struct {
 
 // User struct
 type User struct {
-	ID       int       `json:"id"`
-	Username string    `json:"username"`
-	Password string    `json:"password"`
-	Created  time.Time `json:"created"`
+	ID        int       `json:"id"`
+	Username  string    `json:"username"`
+	Password  string    `json:"password"`
+	Created   time.Time `json:"created"`
+	StreamKey string    `json:"streamKey"`
 }
 
 // Group struct
