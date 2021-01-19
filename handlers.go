@@ -214,6 +214,8 @@ func password(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
+
+	fmt.Fprintln(w, "Password changed")
 }
 
 // /logout GET
