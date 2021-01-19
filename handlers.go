@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"time"
@@ -19,11 +22,22 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 func home(w http.ResponseWriter, r *http.Request) {
 	claims, err := checkClaims(r)
 	if err != nil {
-		renderTemplate(w, "index.html", nil)
+		unauthorizedRequest(w, err)
 		return
 	}
 	auth := &Auth{Username: claims.Username, Groups: claims.Groups}
-	renderTemplate(w, "index.html", auth)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(auth)
+}
+
+// /home GET
+func homePage(w http.ResponseWriter, r *http.Request) {
+	claims, err := checkClaims(r)
+	if err != nil {
+		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+		return
+	}
+	renderTemplate(w, "index.html", claims)
 }
 
 // /register GET
@@ -47,16 +61,14 @@ func register(w http.ResponseWriter, r *http.Request) {
 	hCaptchaResponse := r.PostForm.Get("h-captcha-response")
 	err = validateCaptcha(hCaptchaResponse)
 	if err != nil {
-		templateError := TemplateError{Msg: "please verify you are human"}
-		renderTemplate(w, "register.html", templateError)
+		badRequest(w, err)
 		return
 	}
 
 	username := r.PostForm.Get("username")
 	user, err := getUserByName(username)
 	if err == nil {
-		templateError := TemplateError{Msg: "username already exists"}
-		renderTemplate(w, "register.html", templateError)
+		badRequest(w, err)
 		return
 	}
 	user.Username = username
@@ -64,8 +76,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 	confirmPassword := r.PostForm.Get("confirm-password")
 	if password != confirmPassword {
-		templateError := TemplateError{Msg: "passwords do not match", Data: user}
-		renderTemplate(w, "register.html", templateError)
+		badRequest(w, err)
 		return
 	}
 
@@ -81,13 +92,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
-
-	success := &Success{
-		Title:    "Registration Successful",
-		Route:    "/auth/login",
-		RouteMsg: "to login",
-	}
-	renderTemplate(w, "success.html", success)
+  
+  fmt.Fprintln(w, "Registration successful")
 }
 
 // /login GET
@@ -108,20 +114,18 @@ func login(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
-	username := r.PostForm.Get("username")
-	password := r.PostForm.Get("password")
+	username := r.Form.Get("username")
+	password := r.Form.Get("password")
 
 	user, err := getUserByName(username)
 	if err != nil {
-		templateError := TemplateError{Msg: "user does not exist"}
-		renderTemplate(w, "login.html", templateError)
+		unauthorizedRequest(w, err)
 		return
 	}
 
 	err = checkHash(user.Password, password)
 	if err != nil {
-		templateError := TemplateError{Msg: "invalid credentials"}
-		renderTemplate(w, "login.html", templateError)
+		unauthorizedRequest(w, err)
 		return
 	}
 
@@ -140,6 +144,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    tokenString,
+		Path:     "/",
 		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,
 	}
@@ -179,14 +184,12 @@ func password(w http.ResponseWriter, r *http.Request) {
 	confirmPassword := r.PostForm.Get("confirm-password")
 
 	if newPassword == currentPassword {
-		templateError := TemplateError{Msg: "new password is the same as current password"}
-		renderTemplate(w, "password.html", templateError)
+		badRequest(w, errors.New("new password is the same as current password"))
 		return
 	}
 
 	if newPassword != confirmPassword {
-		templateError := TemplateError{Msg: "passwords do not match"}
-		renderTemplate(w, "password.html", templateError)
+		badRequest(w, errors.New("passwords do not match"))
 		return
 	}
 
@@ -198,8 +201,7 @@ func password(w http.ResponseWriter, r *http.Request) {
 
 	err = checkHash(user.Password, currentPassword)
 	if err != nil {
-		templateError := TemplateError{Msg: "current password incorrect"}
-		renderTemplate(w, "password.html", templateError)
+		badRequest(w, errors.New("current password is incorrect"))
 		return
 	}
 
@@ -215,12 +217,7 @@ func password(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	success := &Success{
-		Title:    "Password Changed",
-		Route:    "/auth/",
-		RouteMsg: "to return home",
-	}
-	renderTemplate(w, "success.html", success)
+	fmt.Fprintln(w, "Password changed")
 }
 
 // /logout GET
@@ -234,15 +231,11 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    "",
+		Path:     "/",
 		Expires:  time.Now(),
 		HttpOnly: true,
 	}
 	http.SetCookie(w, jwtCookie)
 
-	success := &Success{
-		Title:    "Logged out",
-		Route:    "/auth/",
-		RouteMsg: "to return home",
-	}
-	renderTemplate(w, "success.html", success)
+	fmt.Fprintln(w, "Logged out")
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 // --- Configuration --- //
@@ -49,6 +50,7 @@ func main() {
 
 	// Route handlers
 	r.HandleFunc("/auth/", home).Methods("GET")
+	r.HandleFunc("/auth/home", homePage).Methods("GET")
 	r.HandleFunc("/auth/register", registerPage).Methods("GET")
 	r.HandleFunc("/auth/register", register).Methods("POST")
 	r.HandleFunc("/auth/login", loginPage).Methods("GET")
@@ -57,14 +59,19 @@ func main() {
 	r.HandleFunc("/auth/password", password).Methods("POST")
 	r.HandleFunc("/auth/logout", logout).Methods("GET")
 
-	// CORS
-	// handler := cors.Default().Handler(r)
+	// CORS in dev environment
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+		AllowCredentials: true,
+		// Debug: true,
+	}).Handler
 
 	// Run server
 	port := config.Port
 	fmt.Println(fmt.Sprintf("Serving on port %d", port))
 
 	if ENV == "dev" {
+		r.Use(cors)
 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 	}
 	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCert, config.SSLKey, r))

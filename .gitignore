@@ -1,2 +1,3 @@
 config.*.json
-./go-auth
+go-auth
+go-auth.exe
