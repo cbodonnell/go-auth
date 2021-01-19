@@ -50,6 +50,7 @@ func main() {
 
 	// Route handlers
 	r.HandleFunc("/auth/", home).Methods("GET")
+	r.HandleFunc("/auth/home", homePage).Methods("GET")
 	r.HandleFunc("/auth/register", registerPage).Methods("GET")
 	r.HandleFunc("/auth/register", register).Methods("POST")
 	r.HandleFunc("/auth/login", loginPage).Methods("GET")

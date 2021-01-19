@@ -30,6 +30,16 @@ func home(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(auth)
 }
 
+// /home GET
+func homePage(w http.ResponseWriter, r *http.Request) {
+	claims, err := checkClaims(r)
+	if err != nil {
+		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+		return
+	}
+	renderTemplate(w, "index.html", claims)
+}
+
 // /register GET
 func registerPage(w http.ResponseWriter, r *http.Request) {
 	_, err := checkClaims(r)
