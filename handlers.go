@@ -92,6 +92,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
+  
+  fmt.Fprintln(w, "Registration successful")
 }
 
 // /login GET

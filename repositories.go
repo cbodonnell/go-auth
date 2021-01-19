@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	// TODO: See about replacing with: https://github.com/jackc/pgx
+	// TODO: See about replacing with: https://github.com/jackc/pgx/v4
 	_ "github.com/lib/pq"
 )
 
