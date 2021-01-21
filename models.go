@@ -50,12 +50,13 @@ type Group struct {
 
 // JWTClaims struct
 type JWTClaims struct {
+	ID       int     `json:"id"`
 	Username string  `json:"username"`
 	Groups   []Group `json:"groups"`
 	jwt.StandardClaims
 }
 
-// Auth struct
+// Auth struct that is returned to user upon authentication
 type Auth struct {
 	Username string  `json:"username"`
 	Groups   []Group `json:"groups"`

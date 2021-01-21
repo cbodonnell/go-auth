@@ -27,10 +27,11 @@ func checkHash(hash, password string) error {
 	return err
 }
 
-func createJWT(username string, groups []Group) (string, error) {
+func createJWT(user User, groups []Group) (string, error) {
 	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
 	claims := JWTClaims{
-		username,
+		user.ID,
+		user.Username,
 		groups,
 		jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),

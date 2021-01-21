@@ -25,7 +25,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		unauthorizedRequest(w, err)
 		return
 	}
-	auth := &Auth{Username: claims.Username, Groups: claims.Groups}
+	auth := &Auth{claims.Username, claims.Groups}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(auth)
 }
@@ -92,8 +92,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
-  
-  fmt.Fprintln(w, "Registration successful")
+
+	fmt.Fprintln(w, "Registration successful")
 }
 
 // /login GET
@@ -135,7 +135,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := createJWT(user.Username, groups)
+	tokenString, err := createJWT(user, groups)
 	if err != nil {
 		internalServerError(w, err)
 		return
