@@ -21,7 +21,7 @@ pipeline {
                 echo 'deploying...'
                 sh 'sudo systemctl stop go-auth'
                 sh 'sudo cp go-auth /etc/go-auth/go-auth'
-                sh 'sudo cp -r templates /etc/go-auth/templates'
+                sh 'sudo cp -r templates/* /etc/go-auth/templates'
                 sh 'sudo systemctl start go-auth'
             }
         }
