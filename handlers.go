@@ -155,7 +155,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
-	fmt.Println("Redirect - " + redirect)
 	if redirect == "" {
 		redirect = "/auth/"
 	}
