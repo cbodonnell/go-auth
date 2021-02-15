@@ -152,7 +152,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 		jwtCookie.Secure = true
 	}
 	http.SetCookie(w, jwtCookie)
-	http.Redirect(w, r, "/auth/", http.StatusSeeOther)
+
+	query := r.URL.Query()
+	redirect := query.Get("redirect")
+	if redirect == "" {
+		redirect = "/auth/"
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
 // /password GET
