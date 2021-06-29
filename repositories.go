@@ -36,7 +36,7 @@ func pingDb(db *sql.DB) {
 func getUserByName(username string) (User, error) {
 	sql := "SELECT * FROM users WHERE username = $1;"
 	var user User
-	err := db.QueryRow(sql, username).Scan(&user.ID, &user.Username, &user.Password, &user.Created, &user.StreamKey)
+	err := db.QueryRow(sql, username).Scan(&user.ID, &user.Username, &user.Password, &user.Created, &user.UUID)
 	if err != nil {
 		return user, err
 	}

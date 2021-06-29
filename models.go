@@ -35,11 +35,11 @@ type TemplateError struct {
 
 // User struct
 type User struct {
-	ID        int       `json:"id"`
-	Username  string    `json:"username"`
-	Password  string    `json:"password"`
-	Created   time.Time `json:"created"`
-	StreamKey string    `json:"streamKey"`
+	ID       int       `json:"id"`
+	Username string    `json:"username"`
+	Password string    `json:"password"`
+	Created  time.Time `json:"created"`
+	UUID     string    `json:"uuid"`
 }
 
 // Group struct
