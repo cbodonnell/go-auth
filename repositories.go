@@ -44,19 +44,23 @@ func getUserByName(username string) (User, error) {
 }
 
 func createUser(user User) (User, error) {
-	sql := "INSERT INTO users (username, password, created) VALUES ($1, $2, $3) RETURNING id;"
-
-	err := db.QueryRow(sql, user.Username, user.Password, user.Created).Scan(&user.ID)
+	tx, err := db.Begin()
 	if err != nil {
 		return user, err
 	}
-
+	sql := `INSERT INTO users (username, password, created, uuid) VALUES ($1, $2, $3, $4) RETURNING id;`
+	err = tx.QueryRow(sql, user.Username, user.Password, user.Created, user.UUID).Scan(&user.ID)
+	if err != nil {
+		tx.Rollback()
+		return user, err
+	}
 	sql = "INSERT INTO user_groups (user_id, group_id) VALUES ($1, 1);"
-	_, err = db.Exec(sql, user.ID)
+	_, err = tx.Exec(sql, user.ID)
 	if err != nil {
+		tx.Rollback()
 		return user, err
 	}
-
+	tx.Commit()
 	return user, nil
 }
 

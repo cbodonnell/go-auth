@@ -52,6 +52,7 @@ type Group struct {
 type JWTClaims struct {
 	ID       int     `json:"id"`
 	Username string  `json:"username"`
+	UUID     string  `json:"uuid"`
 	Groups   []Group `json:"groups"`
 	jwt.StandardClaims
 }
@@ -59,6 +60,7 @@ type JWTClaims struct {
 // Auth struct that is returned to user upon authentication
 type Auth struct {
 	Username string  `json:"username"`
+	UUID     string  `json:"uuid"`
 	Groups   []Group `json:"groups"`
 }
 
