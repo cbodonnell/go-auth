@@ -1,5 +1,3 @@
--- public.user_groups definition
-
 -- Drop tables
 
 -- DROP TABLE public.user_groups;
@@ -7,6 +5,8 @@
 -- DROP TABLE public."groups";
 
 -- DROP TABLE public.users;
+
+-- Create tables
 
 -- public.users definition
 
