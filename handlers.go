@@ -25,7 +25,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		unauthorizedRequest(w, err)
 		return
 	}
-	auth := &Auth{claims.Username, claims.Groups}
+	auth := &Auth{claims.Username, claims.UUID, claims.Groups}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(auth)
 }
@@ -86,6 +86,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user.UUID = generateUUID()
 	user.Created = time.Now()
 	user, err = createUser(user)
 	if err != nil {

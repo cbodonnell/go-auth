@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,6 +16,10 @@ import (
 // 	salt := hex.EncodeToString(saltBytes)
 // 	return salt, err
 // }
+
+func generateUUID() string {
+	return uuid.New().String()
+}
 
 // Generate a bcrypt Hash (see: https://en.wikipedia.org/wiki/Bcrypt)
 func generateHash(password string) (string, error) {
@@ -32,6 +37,7 @@ func createJWT(user User, groups []Group) (string, error) {
 	claims := JWTClaims{
 		user.ID,
 		user.Username,
+		user.UUID,
 		groups,
 		jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),

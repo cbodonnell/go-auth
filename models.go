@@ -35,11 +35,11 @@ type TemplateError struct {
 
 // User struct
 type User struct {
-	ID        int       `json:"id"`
-	Username  string    `json:"username"`
-	Password  string    `json:"password"`
-	Created   time.Time `json:"created"`
-	StreamKey string    `json:"streamKey"`
+	ID       int       `json:"id"`
+	Username string    `json:"username"`
+	Password string    `json:"password"`
+	Created  time.Time `json:"created"`
+	UUID     string    `json:"uuid"`
 }
 
 // Group struct
@@ -52,6 +52,7 @@ type Group struct {
 type JWTClaims struct {
 	ID       int     `json:"id"`
 	Username string  `json:"username"`
+	UUID     string  `json:"uuid"`
 	Groups   []Group `json:"groups"`
 	jwt.StandardClaims
 }
@@ -59,6 +60,7 @@ type JWTClaims struct {
 // Auth struct that is returned to user upon authentication
 type Auth struct {
 	Username string  `json:"username"`
+	UUID     string  `json:"uuid"`
 	Groups   []Group `json:"groups"`
 }
 
