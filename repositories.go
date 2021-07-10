@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -31,6 +32,16 @@ func pingDb(db *sql.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func getUserByID(userID int) (User, error) {
+	sql := "SELECT * FROM users WHERE id = $1;"
+	var user User
+	err := db.QueryRow(sql, userID).Scan(&user.ID, &user.Username, &user.Password, &user.Created, &user.UUID)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }
 
 func getUserByName(username string) (User, error) {
@@ -99,6 +110,32 @@ func updatePassword(userID int, password string) error {
 	_, err := db.Exec(sql, password, userID)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func saveRefresh(userID int, refreshString string) error {
+	sql := `INSERT INTO user_refresh (user_id, refresh) VALUES ($1, $2);`
+
+	_, err := db.Exec(sql, userID, refreshString)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateRefresh(userID int, refreshString string) error {
+	sql := `SELECT 1 FROM user_refresh
+	WHERE user_id = $1
+	AND refresh = $2;`
+
+	var result int
+	err := db.QueryRow(sql, userID, refreshString).Scan(&result)
+	if err != nil {
+		return err
+	}
+	if result != 1 {
+		return errors.New("invalid refresh token")
 	}
 	return nil
 }

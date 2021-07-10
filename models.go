@@ -8,14 +8,15 @@ import (
 
 // Configuration struct
 type Configuration struct {
-	Debug          bool          `json:"debug"`
-	Port           int           `json:"port"`
-	SSLCert        string        `json:"sslCert"`
-	SSLKey         string        `json:"sslKey"`
-	Db             DataSource    `json:"db"`
-	JWTKey         string        `json:"jwtKey"`
-	JWTExpiration  time.Duration `json:"jwtExpiration"`
-	HCaptchaSecret string        `json:"hCaptchaSecret"`
+	Debug             bool          `json:"debug"`
+	Port              int           `json:"port"`
+	SSLCert           string        `json:"sslCert"`
+	SSLKey            string        `json:"sslKey"`
+	Db                DataSource    `json:"db"`
+	JWTKey            string        `json:"jwtKey"`
+	JWTExpiration     time.Duration `json:"jwtExpiration"`
+	RefreshExpiration time.Duration `json:"refreshExpiration"`
+	HCaptchaSecret    string        `json:"hCaptchaSecret"`
 }
 
 // DataSource struct
@@ -54,6 +55,12 @@ type JWTClaims struct {
 	Username string  `json:"username"`
 	UUID     string  `json:"uuid"`
 	Groups   []Group `json:"groups"`
+	jwt.StandardClaims
+}
+
+// RefreshClaims struct
+type RefreshClaims struct {
+	ID int `json:"id"`
 	jwt.StandardClaims
 }
 

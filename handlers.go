@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -18,12 +19,64 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 	}
 }
 
+func refresh(w http.ResponseWriter, r *http.Request) error {
+	refreshCookie, err := r.Cookie("refresh")
+	if err != nil {
+		// badRequest(w, err)
+		return err
+	}
+	refreshClaims, err := checkRefreshClaims(refreshCookie.Value)
+	if err != nil {
+		// unauthorizedRequest(w, err)
+		return err
+	}
+	err = validateRefresh(refreshClaims.ID, refreshCookie.Value)
+	if err != nil {
+		// unauthorizedRequest(w, err)
+		return err
+	}
+	user, err := getUserByID(refreshClaims.ID)
+	if err != nil {
+		// internalServerError(w, err)
+		return err
+	}
+	groups, err := getUserGroups(user.ID)
+	if err != nil {
+		// internalServerError(w, err)
+		return err
+	}
+	jwtString, err := createJWT(user, groups)
+	if err != nil {
+		// internalServerError(w, err)
+		return err
+	}
+	jwtCookie := &http.Cookie{
+		Name:     "jwt",
+		Value:    jwtString,
+		Path:     "/",
+		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
+		HttpOnly: true,
+	}
+	if config.SSLCert != "" {
+		jwtCookie.Secure = true
+	}
+	http.SetCookie(w, jwtCookie)
+	return nil
+}
+
 // / GET
 func home(w http.ResponseWriter, r *http.Request) {
-	claims, err := checkClaims(r)
+	claims, err := checkJWTClaims(r)
 	if err != nil {
-		unauthorizedRequest(w, err)
-		return
+		if strings.Contains(err.Error(), "token is expired") {
+			err = refresh(w, r)
+			if err != nil {
+				return
+			}
+		} else {
+			unauthorizedRequest(w, err)
+			return
+		}
 	}
 	auth := &Auth{claims.Username, claims.UUID, claims.Groups}
 	w.Header().Set("Content-Type", "application/json")
@@ -32,7 +85,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 // /home GET
 func homePage(w http.ResponseWriter, r *http.Request) {
-	claims, err := checkClaims(r)
+	claims, err := checkJWTClaims(r)
 	if err != nil {
 		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 		return
@@ -42,7 +95,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 
 // /register GET
 func registerPage(w http.ResponseWriter, r *http.Request) {
-	_, err := checkClaims(r)
+	_, err := checkJWTClaims(r)
 	if err == nil {
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
@@ -99,7 +152,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 // /login GET
 func loginPage(w http.ResponseWriter, r *http.Request) {
-	_, err := checkClaims(r)
+	_, err := checkJWTClaims(r)
 	if err == nil {
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
@@ -136,7 +189,19 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := createJWT(user, groups)
+	jwtString, err := createJWT(user, groups)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	refreshString, err := createRefresh(user.ID)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	err = saveRefresh(user.ID, refreshString)
 	if err != nil {
 		internalServerError(w, err)
 		return
@@ -144,7 +209,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
-		Value:    tokenString,
+		Value:    jwtString,
 		Path:     "/",
 		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,
@@ -153,6 +218,18 @@ func login(w http.ResponseWriter, r *http.Request) {
 		jwtCookie.Secure = true
 	}
 	http.SetCookie(w, jwtCookie)
+
+	refreshCookie := &http.Cookie{
+		Name:     "refresh",
+		Value:    refreshString,
+		Path:     "/",
+		Expires:  time.Now().Add(config.RefreshExpiration * time.Minute),
+		HttpOnly: true,
+	}
+	if config.SSLCert != "" {
+		jwtCookie.Secure = true
+	}
+	http.SetCookie(w, refreshCookie)
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
@@ -164,7 +241,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 // /password GET
 func passwordPage(w http.ResponseWriter, r *http.Request) {
-	_, err := checkClaims(r)
+	_, err := checkJWTClaims(r)
 	if err != nil {
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
@@ -175,7 +252,7 @@ func passwordPage(w http.ResponseWriter, r *http.Request) {
 
 // /password POST
 func password(w http.ResponseWriter, r *http.Request) {
-	claims, err := checkClaims(r)
+	claims, err := checkJWTClaims(r)
 	if err != nil {
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
@@ -229,7 +306,7 @@ func password(w http.ResponseWriter, r *http.Request) {
 
 // /logout GET
 func logout(w http.ResponseWriter, r *http.Request) {
-	_, err := checkClaims(r)
+	_, err := checkJWTClaims(r)
 	if err != nil {
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return

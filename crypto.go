@@ -34,6 +34,7 @@ func checkHash(hash, password string) error {
 
 func createJWT(user User, groups []Group) (string, error) {
 	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
+	// expirationTime := time.Now().Add(5 * time.Second) // for testing
 	claims := JWTClaims{
 		user.ID,
 		user.Username,
@@ -49,7 +50,22 @@ func createJWT(user User, groups []Group) (string, error) {
 	return tokenString, err
 }
 
-func checkClaims(r *http.Request) (*JWTClaims, error) {
+func createRefresh(userID int) (string, error) {
+	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
+	// expirationTime := time.Now().Add(15 * time.Second) // for testing
+	claims := RefreshClaims{
+		userID,
+		jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+			Issuer:    "dev",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(config.JWTKey))
+	return tokenString, err
+}
+
+func checkJWTClaims(r *http.Request) (*JWTClaims, error) {
 	jwtCookie, err := r.Cookie("jwt")
 	if err != nil {
 		return nil, err
@@ -58,6 +74,17 @@ func checkClaims(r *http.Request) (*JWTClaims, error) {
 
 	claims := &JWTClaims{}
 	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.JWTKey), nil
+	})
+	if err != nil {
+		return claims, err
+	}
+	return claims, nil
+}
+
+func checkRefreshClaims(tokenString string) (*RefreshClaims, error) {
+	claims := &RefreshClaims{}
+	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.JWTKey), nil
 	})
 	if err != nil {
