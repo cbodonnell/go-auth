@@ -230,6 +230,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		jwtCookie.Secure = true
 	}
 	http.SetCookie(w, refreshCookie)
+	fmt.Println("Set refresh cookie " + refreshString)
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
