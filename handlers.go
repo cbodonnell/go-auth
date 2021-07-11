@@ -227,10 +227,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	}
 	if config.SSLCert != "" {
-		jwtCookie.Secure = true
+		refreshCookie.Secure = true
 	}
 	http.SetCookie(w, refreshCookie)
-	fmt.Println("Set refresh cookie " + refreshString)
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
