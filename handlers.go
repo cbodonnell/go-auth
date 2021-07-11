@@ -213,9 +213,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,
-	}
-	if config.SSLCert != "" {
-		jwtCookie.Secure = true
+		Secure:   config.SSLCert != "",
 	}
 	http.SetCookie(w, jwtCookie)
 
@@ -225,9 +223,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  time.Now().Add(config.RefreshExpiration * time.Minute),
 		HttpOnly: true,
-	}
-	if config.SSLCert != "" {
-		refreshCookie.Secure = true
+		Secure:   config.SSLCert != "",
 	}
 	http.SetCookie(w, refreshCookie)
 
