@@ -34,7 +34,6 @@ func checkHash(hash, password string) error {
 
 func createJWT(user User, groups []Group) (string, error) {
 	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
-	// expirationTime := time.Now().Add(5 * time.Second) // for testing
 	claims := JWTClaims{
 		user.ID,
 		user.Username,
@@ -52,7 +51,6 @@ func createJWT(user User, groups []Group) (string, error) {
 
 func createRefresh(userID int) (string, error) {
 	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
-	// expirationTime := time.Now().Add(15 * time.Second) // for testing
 	claims := RefreshClaims{
 		userID,
 		jwt.StandardClaims{

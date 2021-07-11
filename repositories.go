@@ -139,3 +139,14 @@ func validateRefresh(userID int, refreshString string) error {
 	}
 	return nil
 }
+
+func deleteRefresh(refreshString string) error {
+	sql := `DELETE FROM user_refresh
+	WHERE refresh = $1;`
+
+	_, err := db.Exec(sql, refreshString)
+	if err != nil {
+		return err
+	}
+	return nil
+}

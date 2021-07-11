@@ -22,45 +22,69 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 func refresh(w http.ResponseWriter, r *http.Request) error {
 	refreshCookie, err := r.Cookie("refresh")
 	if err != nil {
-		// badRequest(w, err)
 		return err
 	}
 	refreshClaims, err := checkRefreshClaims(refreshCookie.Value)
 	if err != nil {
-		// unauthorizedRequest(w, err)
 		return err
 	}
 	err = validateRefresh(refreshClaims.ID, refreshCookie.Value)
 	if err != nil {
-		// unauthorizedRequest(w, err)
 		return err
 	}
 	user, err := getUserByID(refreshClaims.ID)
 	if err != nil {
-		// internalServerError(w, err)
 		return err
 	}
 	groups, err := getUserGroups(user.ID)
 	if err != nil {
-		// internalServerError(w, err)
 		return err
 	}
 	jwtString, err := createJWT(user, groups)
 	if err != nil {
-		// internalServerError(w, err)
 		return err
 	}
+
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    jwtString,
 		Path:     "/",
 		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,
-	}
-	if config.SSLCert != "" {
-		jwtCookie.Secure = true
+		Secure:   config.SSLCert != "",
 	}
 	http.SetCookie(w, jwtCookie)
+	return nil
+}
+
+func clearTokens(w http.ResponseWriter, r *http.Request) error {
+	clearedJWTCookie := &http.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now(),
+		HttpOnly: true,
+		Secure:   config.SSLCert != "",
+	}
+	http.SetCookie(w, clearedJWTCookie)
+	clearedRefreshCookie := &http.Cookie{
+		Name:     "refresh",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now(),
+		HttpOnly: true,
+		Secure:   config.SSLCert != "",
+	}
+	http.SetCookie(w, clearedRefreshCookie)
+	refreshCookie, err := r.Cookie("refresh")
+	if err != nil {
+		return err
+	}
+
+	err = deleteRefresh(refreshCookie.Value)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -71,6 +95,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(err.Error(), "token is expired") {
 			err = refresh(w, r)
 			if err != nil {
+				_ = clearTokens(w, r)
+				unauthorizedRequest(w, errors.New("refresh expired"))
 				return
 			}
 		} else {
@@ -201,6 +227,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: Store hashed token
 	err = saveRefresh(user.ID, refreshString)
 	if err != nil {
 		internalServerError(w, err)
@@ -302,20 +329,17 @@ func password(w http.ResponseWriter, r *http.Request) {
 
 // /logout GET
 func logout(w http.ResponseWriter, r *http.Request) {
-	_, err := checkJWTClaims(r)
+	_, err := r.Cookie("refresh")
 	if err != nil {
+		_ = clearTokens(w, r)
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
-
-	jwtCookie := &http.Cookie{
-		Name:     "jwt",
-		Value:    "",
-		Path:     "/",
-		Expires:  time.Now(),
-		HttpOnly: true,
+	err = clearTokens(w, r)
+	if err != nil {
+		internalServerError(w, err)
+		return
 	}
-	http.SetCookie(w, jwtCookie)
 
 	fmt.Fprintln(w, "Logged out")
 }
