@@ -58,6 +58,12 @@ type JWTClaims struct {
 	jwt.StandardClaims
 }
 
+// JWT struct {
+type JWT struct {
+	Value  string
+	Claims JWTClaims
+}
+
 // RefreshClaims struct
 type RefreshClaims struct {
 	UserID int `json:"user_id"`

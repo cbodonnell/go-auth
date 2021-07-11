@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -19,39 +18,39 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 	}
 }
 
-func refresh(w http.ResponseWriter, r *http.Request) error {
+func refresh(w http.ResponseWriter, r *http.Request) (*JWTClaims, error) {
 	refreshClaims, err := checkRefreshClaims(r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = validateRefresh(refreshClaims.UserID, refreshClaims.Id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	user, err := getUserByID(refreshClaims.UserID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	groups, err := getUserGroups(user.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	jwtString, err := createJWT(user, groups)
+	jwt, err := createJWT(user, groups)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = deleteRefresh(refreshClaims.Id)
 	refreshToken, err := createRefresh(user.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = saveRefresh(user.ID, refreshToken.JTI)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
-		Value:    jwtString,
+		Value:    jwt.Value,
 		Path:     "/",
 		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,
@@ -67,7 +66,7 @@ func refresh(w http.ResponseWriter, r *http.Request) error {
 		Secure:   config.SSLCert != "",
 	}
 	http.SetCookie(w, refreshCookie)
-	return nil
+	return &jwt.Claims, err
 }
 
 // Clear session cookies
@@ -136,14 +135,9 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 	claims, err := checkJWTClaims(r)
 	if err != nil {
-		if strings.Contains(err.Error(), "token is expired") {
-			err = refresh(w, r)
-			if err != nil {
-				_ = clearSession(w, r)
-				unauthorizedRequest(w, errors.New("refresh expired"))
-				return
-			}
-		} else {
+		claims, err = refresh(w, r)
+		if err != nil {
+			_ = clearSession(w, r)
 			unauthorizedRequest(w, err)
 			return
 		}
@@ -265,7 +259,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtString, err := createJWT(user, groups)
+	jwt, err := createJWT(user, groups)
 	if err != nil {
 		internalServerError(w, err)
 		return
@@ -285,7 +279,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
-		Value:    jwtString,
+		Value:    jwt.Value,
 		Path:     "/",
 		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
 		HttpOnly: true,

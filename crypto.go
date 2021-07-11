@@ -32,7 +32,7 @@ func checkHash(hash, password string) error {
 	return err
 }
 
-func createJWT(user User, groups []Group) (string, error) {
+func createJWT(user User, groups []Group) (JWT, error) {
 	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
 	claims := JWTClaims{
 		user.ID,
@@ -46,7 +46,8 @@ func createJWT(user User, groups []Group) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(config.JWTKey))
-	return tokenString, err
+	jwt := JWT{Value: tokenString, Claims: claims}
+	return jwt, err
 }
 
 func createRefresh(userID int) (RefreshToken, error) {
