@@ -149,10 +149,26 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 // /home GET
 func homePage(w http.ResponseWriter, r *http.Request) {
-	claims, err := checkJWTClaims(r)
+	refreshClaims, err := checkRefreshClaims(r)
 	if err != nil {
+		_ = clearSession(w, r)
 		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 		return
+	}
+	err = validateRefresh(refreshClaims.UserID, refreshClaims.Id)
+	if err != nil {
+		_ = clearSession(w, r)
+		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+		return
+	}
+	claims, err := checkJWTClaims(r)
+	if err != nil {
+		claims, err = refresh(w, r)
+		if err != nil {
+			_ = clearSession(w, r)
+			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+			return
+		}
 	}
 	renderTemplate(w, "index.html", claims)
 }
