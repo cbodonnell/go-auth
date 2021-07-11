@@ -1,13 +1,13 @@
 -- Drop tables
 
 
--- DROP TABLE public.user_groups;
+--  DROP TABLE public.user_groups;
 
--- DROP TABLE public.user_refresh;
+--  DROP TABLE public.user_refresh;
 
--- DROP TABLE public."groups";
+--  DROP TABLE public."groups";
 
--- DROP TABLE public.users;
+--  DROP TABLE public.users;
 
 
 -- Create tables
@@ -33,13 +33,15 @@ CREATE TABLE public."groups" (
 	CONSTRAINT groups_pkey PRIMARY KEY (id)
 );
 
+INSERT INTO public."groups" ("name") VALUES ('public'), ('admin');
+
 
 -- public.user_refresh definition
 
 CREATE TABLE public.user_refresh (
 	id serial NOT NULL,
 	user_id int4 NOT NULL,
-	"refresh" text NOT NULL,
+	"jti" text NOT NULL,
 	CONSTRAINT user_refresh_pkey PRIMARY KEY (id)
 );
 

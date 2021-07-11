@@ -1,43 +1,41 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
-	"log"
+	"os"
 
-	// TODO: See about replacing with: https://github.com/jackc/pgx/v4
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // db instance
-var db *sql.DB
+var db *pgxpool.Pool
 
 // connect to db
-func connectDb(s DataSource) *sql.DB {
+func connectDb(s DataSource) *pgxpool.Pool {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		s.Host, s.Port, s.User, s.Password, s.Dbname)
-	db, err := sql.Open("postgres", psqlInfo)
+	db, err := pgxpool.Connect(context.Background(), psqlInfo)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
 	}
 	fmt.Printf("Connected to %s as %s\n", s.Dbname, s.User)
 	return db
 }
 
-// ping db
-func pingDb(db *sql.DB) {
-	err := db.Ping()
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func getUserByID(userID int) (User, error) {
 	sql := "SELECT * FROM users WHERE id = $1;"
 	var user User
-	err := db.QueryRow(sql, userID).Scan(&user.ID, &user.Username, &user.Password, &user.Created, &user.UUID)
+	err := db.QueryRow(context.Background(), sql, userID).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Password,
+		&user.Created,
+		&user.UUID,
+	)
 	if err != nil {
 		return user, err
 	}
@@ -47,7 +45,13 @@ func getUserByID(userID int) (User, error) {
 func getUserByName(username string) (User, error) {
 	sql := "SELECT * FROM users WHERE username = $1;"
 	var user User
-	err := db.QueryRow(sql, username).Scan(&user.ID, &user.Username, &user.Password, &user.Created, &user.UUID)
+	err := db.QueryRow(context.Background(), sql, username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Password,
+		&user.Created,
+		&user.UUID,
+	)
 	if err != nil {
 		return user, err
 	}
@@ -55,23 +59,23 @@ func getUserByName(username string) (User, error) {
 }
 
 func createUser(user User) (User, error) {
-	tx, err := db.Begin()
+	tx, err := db.Begin(context.Background())
 	if err != nil {
 		return user, err
 	}
 	sql := `INSERT INTO users (username, password, created, uuid) VALUES ($1, $2, $3, $4) RETURNING id;`
-	err = tx.QueryRow(sql, user.Username, user.Password, user.Created, user.UUID).Scan(&user.ID)
+	err = tx.QueryRow(context.Background(), sql, user.Username, user.Password, user.Created, user.UUID).Scan(&user.ID)
 	if err != nil {
-		tx.Rollback()
+		tx.Rollback(context.Background())
 		return user, err
 	}
 	sql = "INSERT INTO user_groups (user_id, group_id) VALUES ($1, 1);"
-	_, err = tx.Exec(sql, user.ID)
+	_, err = tx.Exec(context.Background(), sql, user.ID)
 	if err != nil {
-		tx.Rollback()
+		tx.Rollback(context.Background())
 		return user, err
 	}
-	tx.Commit()
+	tx.Commit(context.Background())
 	return user, nil
 }
 
@@ -83,7 +87,7 @@ func getUserGroups(userID int) ([]Group, error) {
 	INNER JOIN users
 	ON users.id = user_groups.user_id
 	WHERE users.id = $1;`
-	rows, err := db.Query(sql, userID)
+	rows, err := db.Query(context.Background(), sql, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,30 +111,30 @@ func getUserGroups(userID int) ([]Group, error) {
 func updatePassword(userID int, password string) error {
 	sql := "UPDATE users SET password = $1 WHERE id = $2;"
 
-	_, err := db.Exec(sql, password, userID)
+	_, err := db.Exec(context.Background(), sql, password, userID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func saveRefresh(userID int, refreshString string) error {
-	sql := `INSERT INTO user_refresh (user_id, refresh) VALUES ($1, $2);`
+func saveRefresh(userID int, jti string) error {
+	sql := `INSERT INTO user_refresh (user_id, jti) VALUES ($1, $2);`
 
-	_, err := db.Exec(sql, userID, refreshString)
+	_, err := db.Exec(context.Background(), sql, userID, jti)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateRefresh(userID int, refreshString string) error {
+func validateRefresh(userID int, jti string) error {
 	sql := `SELECT 1 FROM user_refresh
 	WHERE user_id = $1
-	AND refresh = $2;`
+	AND jti = $2;`
 
 	var result int
-	err := db.QueryRow(sql, userID, refreshString).Scan(&result)
+	err := db.QueryRow(context.Background(), sql, userID, jti).Scan(&result)
 	if err != nil {
 		return err
 	}
@@ -140,11 +144,22 @@ func validateRefresh(userID int, refreshString string) error {
 	return nil
 }
 
-func deleteRefresh(refreshString string) error {
+func deleteRefresh(jti string) error {
 	sql := `DELETE FROM user_refresh
-	WHERE refresh = $1;`
+	WHERE jti = $1;`
 
-	_, err := db.Exec(sql, refreshString)
+	_, err := db.Exec(context.Background(), sql, jti)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteAllRefresh(userID int) error {
+	sql := `DELETE FROM user_refresh
+	WHERE user_id = $1;`
+
+	_, err := db.Exec(context.Background(), sql, userID)
 	if err != nil {
 		return err
 	}

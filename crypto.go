@@ -49,18 +49,20 @@ func createJWT(user User, groups []Group) (string, error) {
 	return tokenString, err
 }
 
-func createRefresh(userID int) (string, error) {
+func createRefresh(userID int) (RefreshToken, error) {
 	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
 	claims := RefreshClaims{
 		userID,
 		jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			Issuer:    "dev",
+			Id:        generateUUID(),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(config.JWTKey))
-	return tokenString, err
+	refreshToken := RefreshToken{Value: tokenString, JTI: claims.Id}
+	return refreshToken, err
 }
 
 func checkJWTClaims(r *http.Request) (*JWTClaims, error) {
@@ -80,9 +82,14 @@ func checkJWTClaims(r *http.Request) (*JWTClaims, error) {
 	return claims, nil
 }
 
-func checkRefreshClaims(tokenString string) (*RefreshClaims, error) {
+func checkRefreshClaims(r *http.Request) (*RefreshClaims, error) {
+	refreshCookie, err := r.Cookie("refresh")
+	if err != nil {
+		return nil, err
+	}
+	tokenString := refreshCookie.Value
 	claims := &RefreshClaims{}
-	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(config.JWTKey), nil
 	})
 	if err != nil {

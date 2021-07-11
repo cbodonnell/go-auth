@@ -20,19 +20,15 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 }
 
 func refresh(w http.ResponseWriter, r *http.Request) error {
-	refreshCookie, err := r.Cookie("refresh")
+	refreshClaims, err := checkRefreshClaims(r)
 	if err != nil {
 		return err
 	}
-	refreshClaims, err := checkRefreshClaims(refreshCookie.Value)
+	err = validateRefresh(refreshClaims.UserID, refreshClaims.Id)
 	if err != nil {
 		return err
 	}
-	err = validateRefresh(refreshClaims.ID, refreshCookie.Value)
-	if err != nil {
-		return err
-	}
-	user, err := getUserByID(refreshClaims.ID)
+	user, err := getUserByID(refreshClaims.UserID)
 	if err != nil {
 		return err
 	}
@@ -44,7 +40,15 @@ func refresh(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-
+	err = deleteRefresh(refreshClaims.Id)
+	refreshToken, err := createRefresh(user.ID)
+	if err != nil {
+		return err
+	}
+	err = saveRefresh(user.ID, refreshToken.JTI)
+	if err != nil {
+		return err
+	}
 	jwtCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    jwtString,
@@ -54,10 +58,20 @@ func refresh(w http.ResponseWriter, r *http.Request) error {
 		Secure:   config.SSLCert != "",
 	}
 	http.SetCookie(w, jwtCookie)
+	refreshCookie := &http.Cookie{
+		Name:     "refresh",
+		Value:    refreshToken.Value,
+		Path:     "/",
+		Expires:  time.Now().Add(config.RefreshExpiration * time.Minute),
+		HttpOnly: true,
+		Secure:   config.SSLCert != "",
+	}
+	http.SetCookie(w, refreshCookie)
 	return nil
 }
 
-func clearTokens(w http.ResponseWriter, r *http.Request) error {
+// Clear session cookies
+func clearCookies(w http.ResponseWriter) {
 	clearedJWTCookie := &http.Cookie{
 		Name:     "jwt",
 		Value:    "",
@@ -76,12 +90,30 @@ func clearTokens(w http.ResponseWriter, r *http.Request) error {
 		Secure:   config.SSLCert != "",
 	}
 	http.SetCookie(w, clearedRefreshCookie)
-	refreshCookie, err := r.Cookie("refresh")
+}
+
+// Clears the current login session
+func clearSession(w http.ResponseWriter, r *http.Request) error {
+	clearCookies(w)
+	refreshClaims, err := checkRefreshClaims(r)
 	if err != nil {
 		return err
 	}
+	err = deleteRefresh(refreshClaims.Id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-	err = deleteRefresh(refreshCookie.Value)
+// Clears the all login sessions for the user
+func clearAllSessions(w http.ResponseWriter, r *http.Request) error {
+	clearCookies(w)
+	refreshClaims, err := checkRefreshClaims(r)
+	if err != nil {
+		return err
+	}
+	err = deleteAllRefresh(refreshClaims.UserID)
 	if err != nil {
 		return err
 	}
@@ -90,12 +122,24 @@ func clearTokens(w http.ResponseWriter, r *http.Request) error {
 
 // / GET
 func home(w http.ResponseWriter, r *http.Request) {
+	refreshClaims, err := checkRefreshClaims(r)
+	if err != nil {
+		_ = clearSession(w, r)
+		unauthorizedRequest(w, err)
+		return
+	}
+	err = validateRefresh(refreshClaims.UserID, refreshClaims.Id)
+	if err != nil {
+		_ = clearSession(w, r)
+		unauthorizedRequest(w, err)
+		return
+	}
 	claims, err := checkJWTClaims(r)
 	if err != nil {
 		if strings.Contains(err.Error(), "token is expired") {
 			err = refresh(w, r)
 			if err != nil {
-				_ = clearTokens(w, r)
+				_ = clearSession(w, r)
 				unauthorizedRequest(w, errors.New("refresh expired"))
 				return
 			}
@@ -126,7 +170,11 @@ func registerPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
-	renderTemplate(w, "register.html", nil)
+	if config.HCaptchaSecret != "" {
+		renderTemplate(w, "register_hCaptcha.html", nil)
+	} else {
+		renderTemplate(w, "register.html", nil)
+	}
 }
 
 // /register POST
@@ -137,11 +185,13 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hCaptchaResponse := r.PostForm.Get("h-captcha-response")
-	err = validateCaptcha(hCaptchaResponse)
-	if err != nil {
-		badRequest(w, err)
-		return
+	if config.HCaptchaSecret != "" {
+		hCaptchaResponse := r.PostForm.Get("h-captcha-response")
+		err = validateCaptcha(hCaptchaResponse)
+		if err != nil {
+			badRequest(w, err)
+			return
+		}
 	}
 
 	username := r.PostForm.Get("username")
@@ -221,14 +271,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshString, err := createRefresh(user.ID)
+	refreshToken, err := createRefresh(user.ID)
 	if err != nil {
 		internalServerError(w, err)
 		return
 	}
 
-	// TODO: Store hashed token
-	err = saveRefresh(user.ID, refreshString)
+	err = saveRefresh(user.ID, refreshToken.JTI)
 	if err != nil {
 		internalServerError(w, err)
 		return
@@ -246,7 +295,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	refreshCookie := &http.Cookie{
 		Name:     "refresh",
-		Value:    refreshString,
+		Value:    refreshToken.Value,
 		Path:     "/",
 		Expires:  time.Now().Add(config.RefreshExpiration * time.Minute),
 		HttpOnly: true,
@@ -331,15 +380,32 @@ func password(w http.ResponseWriter, r *http.Request) {
 func logout(w http.ResponseWriter, r *http.Request) {
 	_, err := r.Cookie("refresh")
 	if err != nil {
-		_ = clearTokens(w, r)
+		_ = clearSession(w, r)
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
-	err = clearTokens(w, r)
+	err = clearSession(w, r)
 	if err != nil {
 		internalServerError(w, err)
 		return
 	}
 
 	fmt.Fprintln(w, "Logged out")
+}
+
+// /logoutAll GET
+func logoutAll(w http.ResponseWriter, r *http.Request) {
+	_, err := r.Cookie("refresh")
+	if err != nil {
+		_ = clearAllSessions(w, r)
+		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
+		return
+	}
+	err = clearAllSessions(w, r)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	fmt.Fprintln(w, "Logged out all sessions")
 }

@@ -51,7 +51,7 @@ type Group struct {
 
 // JWTClaims struct
 type JWTClaims struct {
-	ID       int     `json:"id"`
+	UserID   int     `json:"user_id"`
 	Username string  `json:"username"`
 	UUID     string  `json:"uuid"`
 	Groups   []Group `json:"groups"`
@@ -60,8 +60,14 @@ type JWTClaims struct {
 
 // RefreshClaims struct
 type RefreshClaims struct {
-	ID int `json:"id"`
+	UserID int `json:"user_id"`
 	jwt.StandardClaims
+}
+
+// RefreshToken struct {
+type RefreshToken struct {
+	Value string
+	JTI   string
 }
 
 // Auth struct that is returned to user upon authentication

@@ -43,12 +43,9 @@ func main() {
 
 	db = connectDb(config.Db)
 	defer db.Close()
-	pingDb(db)
 
 	// Init router
 	r := mux.NewRouter()
-
-	// Route handlers
 	r.HandleFunc("/auth/", home).Methods("GET")
 	r.HandleFunc("/auth/home", homePage).Methods("GET")
 	r.HandleFunc("/auth/register", registerPage).Methods("GET")
@@ -58,6 +55,7 @@ func main() {
 	r.HandleFunc("/auth/password", passwordPage).Methods("GET")
 	r.HandleFunc("/auth/password", password).Methods("POST")
 	r.HandleFunc("/auth/logout", logout).Methods("GET")
+	r.HandleFunc("/auth/logoutAll", logoutAll).Methods("GET")
 
 	// CORS in dev environment
 	cors := cors.New(cors.Options{
