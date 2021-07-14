@@ -142,9 +142,16 @@ func home(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	auth := &Auth{claims.Username, claims.UUID, claims.Groups}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(auth)
+
+	query := r.URL.Query()
+	redirect := query.Get("redirect")
+	if redirect == "" {
+		auth := &Auth{claims.Username, claims.UUID, claims.Groups}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(auth)
+		return
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
 // /home GET
@@ -389,7 +396,13 @@ func password(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintln(w, "Password changed")
+	query := r.URL.Query()
+	redirect := query.Get("redirect")
+	if redirect == "" {
+		fmt.Fprintln(w, "Password changed")
+		return
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
 // /logout GET
@@ -406,7 +419,13 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintln(w, "Logged out")
+	query := r.URL.Query()
+	redirect := query.Get("redirect")
+	if redirect == "" {
+		fmt.Fprintln(w, "Logged out")
+		return
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
 // /logoutAll GET
@@ -423,5 +442,11 @@ func logoutAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintln(w, "Logged out all sessions")
+	query := r.URL.Query()
+	redirect := query.Get("redirect")
+	if redirect == "" {
+		fmt.Fprintln(w, "Logged out all sessions")
+		return
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
