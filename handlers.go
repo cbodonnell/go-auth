@@ -233,7 +233,13 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintln(w, "Registration successful")
+	query := r.URL.Query()
+	redirect := query.Get("redirect")
+	if redirect == "" {
+		fmt.Fprintln(w, "Registration successful")
+		return
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
 // /login GET

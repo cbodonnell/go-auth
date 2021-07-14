@@ -7,7 +7,7 @@
     <script src="https://hcaptcha.com/1/api.js" async defer></script>
 </head>
 <body>
-    <form action="/auth/register" method="POST">
+    <form method="POST">
         <h1>Register</h1>
         {{ if and . .Msg }}
             <p style="color: red;">{{ .Msg }}</p>
