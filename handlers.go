@@ -18,6 +18,16 @@ func renderTemplate(w http.ResponseWriter, template string, data interface{}) {
 	}
 }
 
+func acceptJSON(r *http.Request) bool {
+	h := r.Header.Values("Accept")
+	for _, v := range h {
+		if v == "application/json" {
+			return true
+		}
+	}
+	return false
+}
+
 func refresh(w http.ResponseWriter, r *http.Request) (*JWTClaims, error) {
 	refreshClaims, err := checkRefreshClaims(r)
 	if err != nil {
@@ -52,7 +62,7 @@ func refresh(w http.ResponseWriter, r *http.Request) (*JWTClaims, error) {
 		Name:     "jwt",
 		Value:    jwt.Value,
 		Path:     "/",
-		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
+		MaxAge:   config.JWTMaxAge,
 		HttpOnly: true,
 		Secure:   config.SSLCert != "",
 	}
@@ -61,7 +71,7 @@ func refresh(w http.ResponseWriter, r *http.Request) (*JWTClaims, error) {
 		Name:     "refresh",
 		Value:    refreshToken.Value,
 		Path:     "/",
-		Expires:  time.Now().Add(config.RefreshExpiration * time.Minute),
+		MaxAge:   config.RefreshMaxAge,
 		HttpOnly: true,
 		Secure:   config.SSLCert != "",
 	}
@@ -75,7 +85,7 @@ func clearCookies(w http.ResponseWriter) {
 		Name:     "jwt",
 		Value:    "",
 		Path:     "/",
-		Expires:  time.Now(),
+		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   config.SSLCert != "",
 	}
@@ -84,7 +94,7 @@ func clearCookies(w http.ResponseWriter) {
 		Name:     "refresh",
 		Value:    "",
 		Path:     "/",
-		Expires:  time.Now(),
+		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   config.SSLCert != "",
 	}
@@ -121,15 +131,24 @@ func clearAllSessions(w http.ResponseWriter, r *http.Request) error {
 
 // / GET
 func home(w http.ResponseWriter, r *http.Request) {
+	acceptJSON := acceptJSON(r)
 	refreshClaims, err := checkRefreshClaims(r)
 	if err != nil {
 		_ = clearSession(w, r)
+		if !acceptJSON {
+			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+			return
+		}
 		unauthorizedRequest(w, err)
 		return
 	}
 	err = validateRefresh(refreshClaims.UserID, refreshClaims.Id)
 	if err != nil {
 		_ = clearSession(w, r)
+		if !acceptJSON {
+			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+			return
+		}
 		unauthorizedRequest(w, err)
 		return
 	}
@@ -138,20 +157,27 @@ func home(w http.ResponseWriter, r *http.Request) {
 		claims, err = refresh(w, r)
 		if err != nil {
 			_ = clearSession(w, r)
+			if !acceptJSON {
+				http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+				return
+			}
 			unauthorizedRequest(w, err)
 			return
 		}
 	}
-
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
-	if redirect == "" {
-		auth := &Auth{claims.Username, claims.UUID, claims.Groups}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(auth)
+	if redirect != "" {
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
+	if !acceptJSON {
+		renderTemplate(w, "index.html", claims)
+		return
+	}
+	auth := &Auth{claims.Username, claims.UUID, claims.Groups}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(auth)
 }
 
 // /home GET
@@ -242,11 +268,11 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
-	if redirect == "" {
-		fmt.Fprintln(w, "Registration successful")
+	if redirect != "" {
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
+	fmt.Fprintln(w, "Registration successful")
 }
 
 // /login GET
@@ -310,7 +336,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Name:     "jwt",
 		Value:    jwt.Value,
 		Path:     "/",
-		Expires:  time.Now().Add(config.JWTExpiration * time.Minute),
+		MaxAge:   config.JWTMaxAge,
 		HttpOnly: true,
 		Secure:   config.SSLCert != "",
 	}
@@ -320,7 +346,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Name:     "refresh",
 		Value:    refreshToken.Value,
 		Path:     "/",
-		Expires:  time.Now().Add(config.RefreshExpiration * time.Minute),
+		MaxAge:   config.RefreshMaxAge,
 		HttpOnly: true,
 		Secure:   config.SSLCert != "",
 	}
@@ -328,10 +354,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
-	if redirect == "" {
-		redirect = "/auth/"
+	if redirect != "" {
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
+		return
 	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
+	http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 }
 
 // /password GET
@@ -398,11 +425,11 @@ func password(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
-	if redirect == "" {
-		fmt.Fprintln(w, "Password changed")
+	if redirect != "" {
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
+	fmt.Fprintln(w, "Password changed")
 }
 
 // /logout GET
@@ -421,11 +448,11 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
-	if redirect == "" {
-		fmt.Fprintln(w, "Logged out")
+	if redirect != "" {
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
+	fmt.Fprintln(w, "Logged out")
 }
 
 // /logoutAll GET
@@ -444,9 +471,9 @@ func logoutAll(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 	redirect := query.Get("redirect")
-	if redirect == "" {
-		fmt.Fprintln(w, "Logged out all sessions")
+	if redirect != "" {
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
+	fmt.Fprintln(w, "Logged out all sessions")
 }

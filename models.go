@@ -8,15 +8,15 @@ import (
 
 // Configuration struct
 type Configuration struct {
-	Debug             bool          `json:"debug"`
-	Port              int           `json:"port"`
-	SSLCert           string        `json:"sslCert"`
-	SSLKey            string        `json:"sslKey"`
-	Db                DataSource    `json:"db"`
-	JWTKey            string        `json:"jwtKey"`
-	JWTExpiration     time.Duration `json:"jwtExpiration"`
-	RefreshExpiration time.Duration `json:"refreshExpiration"`
-	HCaptchaSecret    string        `json:"hCaptchaSecret"`
+	Debug          bool       `json:"debug"`
+	Port           int        `json:"port"`
+	SSLCert        string     `json:"sslCert"`
+	SSLKey         string     `json:"sslKey"`
+	Db             DataSource `json:"db"`
+	JWTKey         string     `json:"jwtKey"`
+	JWTMaxAge      int        `json:"jwtMaxAge"`
+	RefreshMaxAge  int        `json:"refreshMaxAge"`
+	HCaptchaSecret string     `json:"hCaptchaSecret"`
 }
 
 // DataSource struct

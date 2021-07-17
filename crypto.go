@@ -33,7 +33,7 @@ func checkHash(hash, password string) error {
 }
 
 func createJWT(user User, groups []Group) (JWT, error) {
-	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
+	expirationTime := time.Now().Add(time.Duration(config.JWTMaxAge) * time.Minute)
 	claims := JWTClaims{
 		user.ID,
 		user.Username,
@@ -51,7 +51,7 @@ func createJWT(user User, groups []Group) (JWT, error) {
 }
 
 func createRefresh(userID int) (RefreshToken, error) {
-	expirationTime := time.Now().Add(config.JWTExpiration * time.Minute)
+	expirationTime := time.Now().Add(time.Duration(config.RefreshMaxAge) * time.Minute)
 	claims := RefreshClaims{
 		userID,
 		jwt.StandardClaims{

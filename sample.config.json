@@ -11,7 +11,7 @@
         "dbname": "database"
     },
     "jwtKey": "secret",
-    "jwtExpiration": 20,
-    "refreshExpiration": 43200,
+    "jwtMaxAge": 1200,
+    "refreshMaxAge": 2592000,
     "hCaptchaSecret": "secret"
 }
