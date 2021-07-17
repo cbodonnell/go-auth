@@ -44,6 +44,9 @@ func main() {
 	db = connectDb(config.Db)
 	defer db.Close()
 
+	// Workers
+	startPurgeRefresh()
+
 	// Init router
 	r := mux.NewRouter()
 	r.HandleFunc("/auth/", home).Methods("GET")

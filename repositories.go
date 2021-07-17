@@ -119,9 +119,10 @@ func updatePassword(userID int, password string) error {
 }
 
 func saveRefresh(userID int, jti string) error {
-	sql := `INSERT INTO user_refresh (user_id, jti) VALUES ($1, $2);`
+	sql := `INSERT INTO user_refresh (user_id, jti, expires)
+	VALUES ($1, $2, current_timestamp + ($3 || ' seconds')::interval);`
 
-	_, err := db.Exec(context.Background(), sql, userID, jti)
+	_, err := db.Exec(context.Background(), sql, userID, jti, fmt.Sprintf("%d", config.RefreshMaxAge))
 	if err != nil {
 		return err
 	}
@@ -160,6 +161,17 @@ func deleteAllRefresh(userID int) error {
 	WHERE user_id = $1;`
 
 	_, err := db.Exec(context.Background(), sql, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteExpiredRefresh() error {
+	sql := `DELETE FROM user_refresh
+	WHERE expires < current_timestamp;`
+
+	_, err := db.Exec(context.Background(), sql)
 	if err != nil {
 		return err
 	}

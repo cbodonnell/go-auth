@@ -42,6 +42,7 @@ CREATE TABLE public.user_refresh (
 	id serial NOT NULL,
 	user_id int4 NOT NULL,
 	"jti" text NOT NULL,
+	expires timestamptz NOT NULL,
 	CONSTRAINT user_refresh_pkey PRIMARY KEY (id)
 );
 
