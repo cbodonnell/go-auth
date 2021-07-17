@@ -47,7 +47,6 @@ func main() {
 	// Init router
 	r := mux.NewRouter()
 	r.HandleFunc("/auth/", home).Methods("GET")
-	r.HandleFunc("/auth/home", homePage).Methods("GET")
 	r.HandleFunc("/auth/register", registerPage).Methods("GET")
 	r.HandleFunc("/auth/register", register).Methods("POST")
 	r.HandleFunc("/auth/login", loginPage).Methods("GET")
@@ -61,7 +60,6 @@ func main() {
 	cors := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000", "http://127.0.0.1:3000"},
 		AllowCredentials: true,
-		// Debug: true,
 	}).Handler
 
 	// Run server

@@ -132,26 +132,6 @@ func clearAllSessions(w http.ResponseWriter, r *http.Request) error {
 // / GET
 func home(w http.ResponseWriter, r *http.Request) {
 	acceptJSON := acceptJSON(r)
-	refreshClaims, err := checkRefreshClaims(r)
-	if err != nil {
-		_ = clearSession(w, r)
-		if !acceptJSON {
-			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
-			return
-		}
-		unauthorizedRequest(w, err)
-		return
-	}
-	err = validateRefresh(refreshClaims.UserID, refreshClaims.Id)
-	if err != nil {
-		_ = clearSession(w, r)
-		if !acceptJSON {
-			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
-			return
-		}
-		unauthorizedRequest(w, err)
-		return
-	}
 	claims, err := checkJWTClaims(r)
 	if err != nil {
 		claims, err = refresh(w, r)
@@ -178,32 +158,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 	auth := &Auth{claims.Username, claims.UUID, claims.Groups}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(auth)
-}
-
-// /home GET
-func homePage(w http.ResponseWriter, r *http.Request) {
-	refreshClaims, err := checkRefreshClaims(r)
-	if err != nil {
-		_ = clearSession(w, r)
-		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
-		return
-	}
-	err = validateRefresh(refreshClaims.UserID, refreshClaims.Id)
-	if err != nil {
-		_ = clearSession(w, r)
-		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
-		return
-	}
-	claims, err := checkJWTClaims(r)
-	if err != nil {
-		claims, err = refresh(w, r)
-		if err != nil {
-			_ = clearSession(w, r)
-			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
-			return
-		}
-	}
-	renderTemplate(w, "index.html", claims)
 }
 
 // /register GET
@@ -365,10 +319,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 func passwordPage(w http.ResponseWriter, r *http.Request) {
 	_, err := checkJWTClaims(r)
 	if err != nil {
-		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
-		return
+		_, err = refresh(w, r)
+		if err != nil {
+			_ = clearSession(w, r)
+			unauthorizedRequest(w, err)
+			return
+		}
 	}
-
 	renderTemplate(w, "password.html", nil)
 }
 
@@ -376,8 +333,12 @@ func passwordPage(w http.ResponseWriter, r *http.Request) {
 func password(w http.ResponseWriter, r *http.Request) {
 	claims, err := checkJWTClaims(r)
 	if err != nil {
-		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
-		return
+		claims, err = refresh(w, r)
+		if err != nil {
+			_ = clearSession(w, r)
+			http.Redirect(w, r, "/auth/", http.StatusSeeOther)
+			return
+		}
 	}
 
 	err = r.ParseForm()
