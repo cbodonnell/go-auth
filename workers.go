@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
+// Daily purge of expired refresh tokens
 func startPurgeRefresh() {
-	go func() { // Daily purge of expired refresh tokens
+	go func() {
 		for {
 			err := deleteExpiredRefresh()
 			if err != nil {
