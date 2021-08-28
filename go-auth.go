@@ -50,14 +50,16 @@ func main() {
 	// Init router
 	r := mux.NewRouter()
 	r.HandleFunc("/auth/", home).Methods("GET")
-	r.HandleFunc("/auth/register", registerPage).Methods("GET")
-	r.HandleFunc("/auth/register", register).Methods("POST")
 	r.HandleFunc("/auth/login", loginPage).Methods("GET")
 	r.HandleFunc("/auth/login", login).Methods("POST")
 	r.HandleFunc("/auth/password", passwordPage).Methods("GET")
 	r.HandleFunc("/auth/password", password).Methods("POST")
 	r.HandleFunc("/auth/logout", logout).Methods("GET")
 	r.HandleFunc("/auth/logoutAll", logoutAll).Methods("GET")
+	if config.Register {
+		r.HandleFunc("/auth/register", registerPage).Methods("GET")
+		r.HandleFunc("/auth/register", register).Methods("POST")
+	}
 
 	// CORS in dev environment
 	cors := cors.New(cors.Options{

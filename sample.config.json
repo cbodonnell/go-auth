@@ -13,5 +13,6 @@
     "jwtKey": "secret",
     "jwtMaxAge": 1200,
     "refreshMaxAge": 2592000,
-    "hCaptchaSecret": "secret"
+    "hCaptchaSecret": "secret",
+    "register": true
 }

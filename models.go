@@ -17,6 +17,7 @@ type Configuration struct {
 	JWTMaxAge      int        `json:"jwtMaxAge"`
 	RefreshMaxAge  int        `json:"refreshMaxAge"`
 	HCaptchaSecret string     `json:"hCaptchaSecret"`
+	Register       bool       `json:"register"`
 }
 
 // DataSource struct
