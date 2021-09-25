@@ -18,6 +18,4 @@ WORKDIR /app
 COPY --from=builder /app/go-auth ./
 COPY --from=builder /app/templates/* ./templates/
 
-EXPOSE 8080
-
 CMD [ "./go-auth" ]

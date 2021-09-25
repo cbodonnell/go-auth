@@ -4,7 +4,7 @@ services:
     build: .
     image: cheebz/go-auth
     ports:
-      - ${PORT}:${PORT}
+      - 127.0.0.1:${PORT}:${PORT}
     environment:
       - DB_HOST=postgres
     env_file:
