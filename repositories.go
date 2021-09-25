@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -22,7 +23,7 @@ func connectDb(s DataSource) *pgxpool.Pool {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Connected to %s as %s\n", s.Dbname, s.User)
+	log.Printf("Connected to %s as %s\n", s.Dbname, s.User)
 	return db
 }
 

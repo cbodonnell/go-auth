@@ -19,7 +19,6 @@ var config Configuration
 func main() {
 	// Get configuration
 	ENV := os.Getenv("ENV")
-	fmt.Println(fmt.Sprintf("Running in ENV: %s", ENV))
 	c, err := ReadConfig(ENV)
 	if err != nil {
 		log.Fatal(err)
@@ -54,7 +53,7 @@ func main() {
 
 	// Run server
 	port := config.Port
-	fmt.Println(fmt.Sprintf("Serving on port %d", port))
+	log.Println(fmt.Sprintf("Serving on port %d", port))
 
 	if config.SSLCert == "" {
 		r.Use(cors)

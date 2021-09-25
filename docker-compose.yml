@@ -12,7 +12,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: always
   postgres:
     image: postgres:latest
     environment:
@@ -27,7 +26,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: always
 
 volumes:
   postgres-data:

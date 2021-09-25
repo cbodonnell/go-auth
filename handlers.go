@@ -194,7 +194,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	username := r.PostForm.Get("username")
 	user, err := getUserByName(username)
 	if err == nil {
-		badRequest(w, err)
+		badRequest(w, errors.New("user already exists"))
 		return
 	}
 	user.Username = username
@@ -202,7 +202,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 	confirmPassword := r.PostForm.Get("confirm-password")
 	if password != confirmPassword {
-		badRequest(w, err)
+		badRequest(w, errors.New("passwords to not match"))
 		return
 	}
 
