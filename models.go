@@ -3,31 +3,8 @@ package main
 import (
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
-
-// Configuration struct
-type Configuration struct {
-	Debug          bool       `json:"debug"`
-	Port           int        `json:"port"`
-	SSLCert        string     `json:"sslCert"`
-	SSLKey         string     `json:"sslKey"`
-	Db             DataSource `json:"db"`
-	JWTKey         string     `json:"jwtKey"`
-	JWTMaxAge      int        `json:"jwtMaxAge"`
-	RefreshMaxAge  int        `json:"refreshMaxAge"`
-	HCaptchaSecret string     `json:"hCaptchaSecret"`
-	Register       bool       `json:"register"`
-}
-
-// DataSource struct
-type DataSource struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Dbname   string `json:"dbname"`
-}
 
 // TemplateError struct
 type TemplateError struct {

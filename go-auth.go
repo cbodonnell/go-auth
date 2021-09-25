@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,21 +14,6 @@ import (
 
 var config Configuration
 
-func getConfig(ENV string) Configuration {
-	file, err := os.Open(fmt.Sprintf("config.%s.json", ENV))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-	decoder := json.NewDecoder(file)
-	var config Configuration
-	err = decoder.Decode(&config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return config
-}
-
 // --- Main --- //
 
 func main() {
@@ -39,7 +23,11 @@ func main() {
 		ENV = "dev"
 	}
 	fmt.Println(fmt.Sprintf("Running in ENV: %s", ENV))
-	config = getConfig(ENV)
+	c, err := ReadConfig(ENV)
+	if err != nil {
+		log.Fatal(err)
+	}
+	config = c
 
 	db = connectDb(config.Db)
 	defer db.Close()
