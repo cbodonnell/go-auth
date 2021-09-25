@@ -22,6 +22,7 @@ var (
 		"REFRESH_MAX_AGE": 2592000,
 		"HCAPTCHA_SECRET": "",
 		"REGISTER":        true,
+		"ALLOWED_ORIGINS": "",
 	}
 	configPaths = []string{
 		".",
@@ -40,6 +41,7 @@ type Configuration struct {
 	RefreshMaxAge  int        `mapstructure:"REFRESH_MAX_AGE"`
 	HCaptchaSecret string     `mapstructure:"HCAPTCHA_SECRET"`
 	Register       bool       `mapstructure:"REGISTER"`
+	AllowedOrigins string     `mapstructure:"ALLOWED_ORIGINS"`
 }
 
 // DataSource struct
