@@ -19,9 +19,6 @@ var config Configuration
 func main() {
 	// Get configuration
 	ENV := os.Getenv("ENV")
-	if ENV == "" {
-		ENV = "dev"
-	}
 	fmt.Println(fmt.Sprintf("Running in ENV: %s", ENV))
 	c, err := ReadConfig(ENV)
 	if err != nil {
