@@ -14,7 +14,7 @@ services:
         condition: service_healthy
     networks:
       - default
-      - auth_net # TODO: set a static hostname for this network to reference
+      - auth_net
   postgres:
     image: postgres:latest
     environment:
