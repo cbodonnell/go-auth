@@ -14,7 +14,7 @@ services:
         condition: service_healthy
     networks:
       - default
-      - auth_net
+      - auth_net # TODO: set a static hostname for this network to reference
   postgres:
     image: postgres:latest
     environment:
@@ -25,7 +25,7 @@ services:
       - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
       - ./postgres-data/:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -36,3 +36,4 @@ volumes:
 networks:
   auth_net:
     driver: bridge
+    name: auth_net
