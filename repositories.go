@@ -146,8 +146,10 @@ func validateRefresh(userID int, jti string) error {
 	return nil
 }
 
-func deleteRefresh(jti string) error {
-	sql := `DELETE FROM user_refresh
+// Invalidate refresh to account for concurrent requests
+func invalidateRefresh(jti string) error {
+	sql := `UPDATE user_refresh
+	SET expires = current_timestamp + (2 || ' minutes')::interval)
 	WHERE jti = $1;`
 
 	_, err := db.Exec(context.Background(), sql, jti)

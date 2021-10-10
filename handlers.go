@@ -49,7 +49,7 @@ func refresh(w http.ResponseWriter, r *http.Request) (*JWTClaims, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = deleteRefresh(refreshClaims.Id)
+	err = invalidateRefresh(refreshClaims.Id)
 	refreshToken, err := createRefresh(user.ID)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func clearSession(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	err = deleteRefresh(refreshClaims.Id)
+	err = invalidateRefresh(refreshClaims.Id)
 	if err != nil {
 		return err
 	}
