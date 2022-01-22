@@ -1,6 +1,10 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/cheebz/logging"
+)
 
 func badRequest(w http.ResponseWriter, err error) {
 	var msg string
@@ -23,6 +27,7 @@ func unauthorizedRequest(w http.ResponseWriter, err error) {
 }
 
 func internalServerError(w http.ResponseWriter, err error) {
+	logging.LogCaller(err)
 	var msg string
 	if config.Debug {
 		msg = err.Error()
