@@ -149,7 +149,7 @@ func validateRefresh(userID int, jti string) error {
 // Invalidate refresh to account for concurrent requests
 func invalidateRefresh(jti string) error {
 	sql := `UPDATE user_refresh
-	SET expires = current_timestamp + (2 || ' minutes')::interval)
+	SET expires = current_timestamp + (2 || ' minutes')::interval
 	WHERE jti = $1;`
 
 	_, err := db.Exec(context.Background(), sql, jti)
