@@ -8,13 +8,12 @@ import (
 
 // Daily purge of expired refresh tokens
 func startPurgeRefresh() {
-	go func() {
-		for {
-			err := deleteExpiredRefresh()
-			if err != nil {
-				log.Println(fmt.Sprintf("Failed to purge refresh: %s", err.Error()))
-			}
-			time.Sleep(24 * time.Hour)
+	for {
+		log.Println("purging expired refresh tokens")
+		err := deleteExpiredRefresh()
+		if err != nil {
+			log.Println(fmt.Sprintf("failed to purge refresh: %s", err.Error()))
 		}
-	}()
+		time.Sleep(24 * time.Hour)
+	}
 }

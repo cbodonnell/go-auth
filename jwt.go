@@ -4,36 +4,44 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cheebz/go-auth/models"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
-// Generate Salt
-// func generateSalt() (string, error) {
-// 	saltBytes := make([]byte, 32)
-// 	_, err := io.ReadFull(rand.Reader, saltBytes)
-// 	salt := hex.EncodeToString(saltBytes)
-// 	return salt, err
-// }
+// JWTClaims struct
+type JWTClaims struct {
+	UserID   int            `json:"user_id"`
+	Username string         `json:"username"`
+	UUID     string         `json:"uuid"`
+	Groups   []models.Group `json:"groups"`
+	jwt.StandardClaims
+}
+
+// JWT struct {
+type JWT struct {
+	Value  string
+	Claims JWTClaims
+}
+
+// RefreshClaims struct
+type RefreshClaims struct {
+	UserID int `json:"user_id"`
+	jwt.StandardClaims
+}
+
+// RefreshToken struct {
+type RefreshToken struct {
+	Value string
+	JTI   string
+}
 
 func generateUUID() string {
 	return uuid.New().String()
 }
 
-// Generate a bcrypt Hash (see: https://en.wikipedia.org/wiki/Bcrypt)
-func generateHash(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
-}
-
-func checkHash(hash, password string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err
-}
-
-func createJWT(user User, groups []Group) (JWT, error) {
-	expirationTime := time.Now().Add(time.Duration(config.JWTMaxAge) * time.Minute)
+func createJWT(user models.User, groups []models.Group) (JWT, error) {
+	expirationTime := time.Now().Add(time.Duration(conf.JWTMaxAge) * time.Minute)
 	claims := JWTClaims{
 		user.ID,
 		user.Username,
@@ -45,13 +53,13 @@ func createJWT(user User, groups []Group) (JWT, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(config.JWTKey))
+	tokenString, err := token.SignedString([]byte(conf.JWTKey))
 	jwt := JWT{Value: tokenString, Claims: claims}
 	return jwt, err
 }
 
 func createRefresh(userID int) (RefreshToken, error) {
-	expirationTime := time.Now().Add(time.Duration(config.RefreshMaxAge) * time.Minute)
+	expirationTime := time.Now().Add(time.Duration(conf.RefreshMaxAge) * time.Minute)
 	claims := RefreshClaims{
 		userID,
 		jwt.StandardClaims{
@@ -61,7 +69,7 @@ func createRefresh(userID int) (RefreshToken, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(config.JWTKey))
+	tokenString, err := token.SignedString([]byte(conf.JWTKey))
 	refreshToken := RefreshToken{Value: tokenString, JTI: claims.Id}
 	return refreshToken, err
 }
@@ -75,7 +83,7 @@ func checkJWTClaims(r *http.Request) (*JWTClaims, error) {
 
 	claims := &JWTClaims{}
 	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.JWTKey), nil
+		return []byte(conf.JWTKey), nil
 	})
 	if err != nil {
 		return claims, err
@@ -91,7 +99,7 @@ func checkRefreshClaims(r *http.Request) (*RefreshClaims, error) {
 	tokenString := refreshCookie.Value
 	claims := &RefreshClaims{}
 	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.JWTKey), nil
+		return []byte(conf.JWTKey), nil
 	})
 	if err != nil {
 		return claims, err

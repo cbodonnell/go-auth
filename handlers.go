@@ -5,8 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"time"
+
+	"github.com/cheebz/go-auth/captcha"
+	"github.com/cheebz/go-auth/crypto"
+	"github.com/cheebz/go-auth/models"
 )
 
 var templates = template.Must(template.ParseGlob("templates/*.html"))
@@ -50,6 +55,9 @@ func refresh(w http.ResponseWriter, r *http.Request) (*JWTClaims, error) {
 		return nil, err
 	}
 	err = invalidateRefresh(refreshClaims.Id)
+	if err != nil {
+		log.Println("failed to invalidate refresh token", err)
+	}
 	refreshToken, err := createRefresh(user.ID)
 	if err != nil {
 		return nil, err
@@ -62,18 +70,18 @@ func refresh(w http.ResponseWriter, r *http.Request) (*JWTClaims, error) {
 		Name:     "jwt",
 		Value:    jwt.Value,
 		Path:     "/",
-		MaxAge:   config.JWTMaxAge,
+		MaxAge:   conf.JWTMaxAge,
 		HttpOnly: true,
-		Secure:   config.SSLCert != "",
+		Secure:   conf.SSLCert != "",
 	}
 	http.SetCookie(w, jwtCookie)
 	refreshCookie := &http.Cookie{
 		Name:     "refresh",
 		Value:    refreshToken.Value,
 		Path:     "/",
-		MaxAge:   config.RefreshMaxAge,
+		MaxAge:   conf.RefreshMaxAge,
 		HttpOnly: true,
-		Secure:   config.SSLCert != "",
+		Secure:   conf.SSLCert != "",
 	}
 	http.SetCookie(w, refreshCookie)
 	return &jwt.Claims, err
@@ -87,7 +95,7 @@ func clearCookies(w http.ResponseWriter) {
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   config.SSLCert != "",
+		Secure:   conf.SSLCert != "",
 	}
 	http.SetCookie(w, clearedJWTCookie)
 	clearedRefreshCookie := &http.Cookie{
@@ -96,7 +104,7 @@ func clearCookies(w http.ResponseWriter) {
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   config.SSLCert != "",
+		Secure:   conf.SSLCert != "",
 	}
 	http.SetCookie(w, clearedRefreshCookie)
 }
@@ -155,7 +163,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, "index.html", claims)
 		return
 	}
-	auth := &Auth{claims.Username, claims.UUID, claims.Groups}
+	auth := &models.Auth{Username: claims.Username, UUID: claims.UUID, Groups: claims.Groups}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(auth)
 }
@@ -167,7 +175,7 @@ func registerPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/auth/", http.StatusSeeOther)
 		return
 	}
-	if config.HCaptchaSecret != "" {
+	if conf.HCaptchaSecret != "" {
 		renderTemplate(w, "register_hCaptcha.html", nil)
 	} else {
 		renderTemplate(w, "register.html", nil)
@@ -182,9 +190,9 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if config.HCaptchaSecret != "" {
+	if conf.HCaptchaSecret != "" {
 		hCaptchaResponse := r.PostForm.Get("h-captcha-response")
-		err = validateCaptcha(hCaptchaResponse)
+		err = captcha.ValidateHCaptcha(hCaptchaResponse, conf.HCaptchaSecret)
 		if err != nil {
 			badRequest(w, err)
 			return
@@ -206,7 +214,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user.Password, err = generateHash(password)
+	user.Password, err = crypto.GenerateHash(password)
 	if err != nil {
 		internalServerError(w, err)
 		return
@@ -256,7 +264,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = checkHash(user.Password, password)
+	err = crypto.CheckHash(user.Password, password)
 	if err != nil {
 		unauthorizedRequest(w, err)
 		return
@@ -290,9 +298,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Name:     "jwt",
 		Value:    jwt.Value,
 		Path:     "/",
-		MaxAge:   config.JWTMaxAge,
+		MaxAge:   conf.JWTMaxAge,
 		HttpOnly: true,
-		Secure:   config.SSLCert != "",
+		Secure:   conf.SSLCert != "",
 	}
 	http.SetCookie(w, jwtCookie)
 
@@ -300,9 +308,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Name:     "refresh",
 		Value:    refreshToken.Value,
 		Path:     "/",
-		MaxAge:   config.RefreshMaxAge,
+		MaxAge:   conf.RefreshMaxAge,
 		HttpOnly: true,
-		Secure:   config.SSLCert != "",
+		Secure:   conf.SSLCert != "",
 	}
 	http.SetCookie(w, refreshCookie)
 
@@ -366,13 +374,13 @@ func password(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = checkHash(user.Password, currentPassword)
+	err = crypto.CheckHash(user.Password, currentPassword)
 	if err != nil {
 		badRequest(w, errors.New("current password is incorrect"))
 		return
 	}
 
-	password, err := generateHash(newPassword)
+	password, err := crypto.GenerateHash(newPassword)
 	if err != nil {
 		internalServerError(w, err)
 		return

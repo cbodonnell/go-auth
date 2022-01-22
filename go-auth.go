@@ -7,30 +7,31 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cheebz/go-auth/config"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
 
 // --- Configuration --- //
 
-var config Configuration
+var conf config.Configuration
 
 // --- Main --- //
 
 func main() {
 	// Get configuration
 	ENV := os.Getenv("ENV")
-	c, err := ReadConfig(ENV)
+	c, err := config.ReadConfig(ENV)
 	if err != nil {
 		log.Fatal(err)
 	}
-	config = c
+	conf = c
 
-	db = connectDb(config.Db)
+	db = connectDb(conf.Db)
 	defer db.Close()
 
 	// Workers
-	startPurgeRefresh()
+	go startPurgeRefresh()
 
 	// Init router
 	r := mux.NewRouter()
@@ -41,25 +42,25 @@ func main() {
 	r.HandleFunc("/auth/password", password).Methods("POST")
 	r.HandleFunc("/auth/logout", logout).Methods("GET")
 	r.HandleFunc("/auth/logoutAll", logoutAll).Methods("GET")
-	if config.Register {
+	if conf.Register {
 		r.HandleFunc("/auth/register", registerPage).Methods("GET")
 		r.HandleFunc("/auth/register", register).Methods("POST")
 	}
 
-	if config.AllowedOrigins != "" {
+	if conf.AllowedOrigins != "" {
 		cors := cors.New(cors.Options{
-			AllowedOrigins:   strings.Split(config.AllowedOrigins, ","),
+			AllowedOrigins:   strings.Split(conf.AllowedOrigins, ","),
 			AllowCredentials: true,
 		}).Handler
 		r.Use(cors)
 	}
 
 	// Run server
-	port := config.Port
+	port := conf.Port
 	log.Println(fmt.Sprintf("Serving on port %d", port))
 
-	if config.SSLCert == "" {
+	if conf.SSLCert == "" {
 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 	}
-	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCert, config.SSLKey, r))
+	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), conf.SSLCert, conf.SSLKey, r))
 }

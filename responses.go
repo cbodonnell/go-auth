@@ -8,7 +8,7 @@ import (
 
 func badRequest(w http.ResponseWriter, err error) {
 	var msg string
-	if config.Debug {
+	if conf.Debug {
 		msg = err.Error()
 	} else {
 		msg = "Bad request"
@@ -18,7 +18,7 @@ func badRequest(w http.ResponseWriter, err error) {
 
 func unauthorizedRequest(w http.ResponseWriter, err error) {
 	var msg string
-	if config.Debug {
+	if conf.Debug {
 		msg = err.Error()
 	} else {
 		msg = "Unauthorized"
@@ -29,7 +29,7 @@ func unauthorizedRequest(w http.ResponseWriter, err error) {
 func internalServerError(w http.ResponseWriter, err error) {
 	logging.LogCaller(err)
 	var msg string
-	if config.Debug {
+	if conf.Debug {
 		msg = err.Error()
 	} else {
 		msg = "Internal server error"

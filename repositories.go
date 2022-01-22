@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/cheebz/go-auth/config"
+	"github.com/cheebz/go-auth/models"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -14,7 +16,7 @@ import (
 var db *pgxpool.Pool
 
 // connect to db
-func connectDb(s DataSource) *pgxpool.Pool {
+func connectDb(s config.DataSource) *pgxpool.Pool {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		s.Host, s.Port, s.User, s.Password, s.Dbname)
@@ -27,9 +29,9 @@ func connectDb(s DataSource) *pgxpool.Pool {
 	return db
 }
 
-func getUserByID(userID int) (User, error) {
+func getUserByID(userID int) (models.User, error) {
 	sql := "SELECT * FROM users WHERE id = $1;"
-	var user User
+	var user models.User
 	err := db.QueryRow(context.Background(), sql, userID).Scan(
 		&user.ID,
 		&user.Username,
@@ -43,9 +45,9 @@ func getUserByID(userID int) (User, error) {
 	return user, nil
 }
 
-func getUserByName(username string) (User, error) {
+func getUserByName(username string) (models.User, error) {
 	sql := "SELECT * FROM users WHERE username = $1;"
-	var user User
+	var user models.User
 	err := db.QueryRow(context.Background(), sql, username).Scan(
 		&user.ID,
 		&user.Username,
@@ -59,7 +61,7 @@ func getUserByName(username string) (User, error) {
 	return user, nil
 }
 
-func createUser(user User) (User, error) {
+func createUser(user models.User) (models.User, error) {
 	tx, err := db.Begin(context.Background())
 	if err != nil {
 		return user, err
@@ -80,7 +82,7 @@ func createUser(user User) (User, error) {
 	return user, nil
 }
 
-func getUserGroups(userID int) ([]Group, error) {
+func getUserGroups(userID int) ([]models.Group, error) {
 	sql := `SELECT groups.id, groups.name
 	FROM groups 
 	INNER JOIN user_groups 
@@ -93,9 +95,9 @@ func getUserGroups(userID int) ([]Group, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var groups []Group
+	var groups []models.Group
 	for rows.Next() {
-		var group Group
+		var group models.Group
 		err = rows.Scan(&group.ID, &group.Name)
 		if err != nil {
 			return groups, err
@@ -123,7 +125,7 @@ func saveRefresh(userID int, jti string) error {
 	sql := `INSERT INTO user_refresh (user_id, jti, expires)
 	VALUES ($1, $2, current_timestamp + ($3 || ' seconds')::interval);`
 
-	_, err := db.Exec(context.Background(), sql, userID, jti, fmt.Sprintf("%d", config.RefreshMaxAge))
+	_, err := db.Exec(context.Background(), sql, userID, jti, fmt.Sprintf("%d", conf.RefreshMaxAge))
 	if err != nil {
 		return err
 	}
