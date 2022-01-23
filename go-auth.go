@@ -2,64 +2,64 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/gorilla/mux"
-	"github.com/rs/cors"
+	"github.com/cheebz/go-auth/config"
+	"github.com/cheebz/go-auth/handlers"
+	"github.com/cheebz/go-auth/hash"
+	"github.com/cheebz/go-auth/jwt"
+	"github.com/cheebz/go-auth/repositories"
+	"github.com/cheebz/go-auth/responses"
+	"github.com/cheebz/go-auth/workers"
 )
-
-// --- Configuration --- //
-
-var config Configuration
-
-// --- Main --- //
 
 func main() {
 	// Get configuration
 	ENV := os.Getenv("ENV")
-	c, err := ReadConfig(ENV)
+	c, err := config.ReadConfig(ENV)
 	if err != nil {
 		log.Fatal(err)
 	}
-	config = c
+	conf := c
 
-	db = connectDb(config.Db)
-	defer db.Close()
-
-	// Workers
-	startPurgeRefresh()
-
-	// Init router
-	r := mux.NewRouter()
-	r.HandleFunc("/auth/", home).Methods("GET")
-	r.HandleFunc("/auth/login", loginPage).Methods("GET")
-	r.HandleFunc("/auth/login", login).Methods("POST")
-	r.HandleFunc("/auth/password", passwordPage).Methods("GET")
-	r.HandleFunc("/auth/password", password).Methods("POST")
-	r.HandleFunc("/auth/logout", logout).Methods("GET")
-	r.HandleFunc("/auth/logoutAll", logoutAll).Methods("GET")
-	if config.Register {
-		r.HandleFunc("/auth/register", registerPage).Methods("GET")
-		r.HandleFunc("/auth/register", register).Methods("POST")
+	// create repository
+	repo := repositories.NewPSQLRepository(conf)
+	defer repo.Close()
+	// create purge refresh worker
+	purgeRefreshWorker := workers.NewPurgeRefreshWorker(repo)
+	go purgeRefreshWorker.Start()
+	// create response writer
+	response := responses.NewAuthResponses(conf.Debug)
+	// create hasher
+	hasher := hash.NewBCryptHash(14)
+	// create handler
+	jwt := jwt.NewJWTHelper(conf.JWTKey, conf.JWTMaxAge, conf.RefreshMaxAge)
+	// parse template files
+	templates := template.Must(template.ParseGlob("templates/*.html"))
+	// create handler
+	handler := handlers.NewMuxHandler(handlers.MuxHandlerConfig{
+		Conf:      conf,
+		Resp:      response,
+		Hasher:    hasher,
+		Repo:      repo,
+		JWT:       jwt,
+		Templates: templates,
+	})
+	if conf.AllowedOrigins != "" {
+		handler.AllowCORS(strings.Split(conf.AllowedOrigins, ","))
 	}
-
-	if config.AllowedOrigins != "" {
-		cors := cors.New(cors.Options{
-			AllowedOrigins:   strings.Split(config.AllowedOrigins, ","),
-			AllowCredentials: true,
-		}).Handler
-		r.Use(cors)
-	}
+	r := handler.GetRouter()
 
 	// Run server
-	port := config.Port
+	port := conf.Port
 	log.Println(fmt.Sprintf("Serving on port %d", port))
 
-	if config.SSLCert == "" {
+	if conf.SSLCert == "" {
 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 	}
-	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCert, config.SSLKey, r))
+	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), conf.SSLCert, conf.SSLKey, r))
 }

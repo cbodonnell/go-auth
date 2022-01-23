@@ -9,12 +9,12 @@
 <body>
     <form method="POST">
         <h1>Register</h1>
-        {{ if and . .Msg }}
+        <!-- {{ if and . .Msg }}
             <p style="color: red;">{{ .Msg }}</p>
-        {{ end }}
+        {{ end }} -->
         <p>Username:</p>
-        <input type="text" name="username" id="username" required
-        value="{{if and . .Data}}{{ .Data.Username }}{{end}}">
+        <input type="text" name="username" id="username" required />
+        <!-- value="{{if and . .Data}}{{ .Data.Username }}{{end}}"> -->
         <p>Password:</p>
         <input type="password" name="password" id="password" required>
         <p>Confirm Password:</p>

@@ -1,4 +1,4 @@
-package main
+package captcha
 
 import (
 	"encoding/json"
@@ -10,10 +10,15 @@ import (
 	"strings"
 )
 
-func validateCaptcha(hCaptchaResponse string) error {
+// HCaptchaValidation struct
+type HCaptchaValidation struct {
+	Success bool `json:"success"`
+}
+
+func ValidateHCaptcha(hCaptchaResponse string, hCaptchaSecret string) error {
 	endpoint := "https://hcaptcha.com/siteverify"
 	data := url.Values{}
-	data.Set("secret", config.HCaptchaSecret)
+	data.Set("secret", hCaptchaSecret)
 	data.Set("response", hCaptchaResponse)
 
 	client := &http.Client{}
@@ -42,7 +47,7 @@ func validateCaptcha(hCaptchaResponse string) error {
 	}
 
 	if !validation.Success {
-		return errors.New("validation unsuccessful")
+		return errors.New("hcaptcha validation unsuccessful")
 	}
 
 	return nil
