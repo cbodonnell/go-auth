@@ -1,4 +1,4 @@
-package main
+package jwt
 
 import (
 	"net/http"
@@ -36,12 +36,22 @@ type RefreshToken struct {
 	JTI   string
 }
 
-func generateUUID() string {
-	return uuid.New().String()
+type JWTHelper struct {
+	JWTKey        string
+	JWTMaxAge     int
+	RefreshMaxAge int
 }
 
-func createJWT(user models.User, groups []models.Group) (JWT, error) {
-	expirationTime := time.Now().Add(time.Duration(conf.JWTMaxAge) * time.Minute)
+func NewJWTHelper(jwtKey string, jwtMaxAge int, refreshMaxAge int) *JWTHelper {
+	return &JWTHelper{
+		JWTKey:        jwtKey,
+		JWTMaxAge:     jwtMaxAge,
+		RefreshMaxAge: refreshMaxAge,
+	}
+}
+
+func (j *JWTHelper) CreateJWT(user models.User, groups []models.Group) (JWT, error) {
+	expirationTime := time.Now().Add(time.Duration(j.JWTMaxAge) * time.Minute)
 	claims := JWTClaims{
 		user.ID,
 		user.Username,
@@ -53,28 +63,28 @@ func createJWT(user models.User, groups []models.Group) (JWT, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(conf.JWTKey))
+	tokenString, err := token.SignedString([]byte(j.JWTKey))
 	jwt := JWT{Value: tokenString, Claims: claims}
 	return jwt, err
 }
 
-func createRefresh(userID int) (RefreshToken, error) {
-	expirationTime := time.Now().Add(time.Duration(conf.RefreshMaxAge) * time.Minute)
+func (j *JWTHelper) CreateRefresh(userID int) (RefreshToken, error) {
+	expirationTime := time.Now().Add(time.Duration(j.RefreshMaxAge) * time.Minute)
 	claims := RefreshClaims{
 		userID,
 		jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			Issuer:    "dev",
-			Id:        generateUUID(),
+			Id:        uuid.New().String(),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(conf.JWTKey))
+	tokenString, err := token.SignedString([]byte(j.JWTKey))
 	refreshToken := RefreshToken{Value: tokenString, JTI: claims.Id}
 	return refreshToken, err
 }
 
-func checkJWTClaims(r *http.Request) (*JWTClaims, error) {
+func (j *JWTHelper) CheckJWTClaims(r *http.Request) (*JWTClaims, error) {
 	jwtCookie, err := r.Cookie("jwt")
 	if err != nil {
 		return nil, err
@@ -83,7 +93,7 @@ func checkJWTClaims(r *http.Request) (*JWTClaims, error) {
 
 	claims := &JWTClaims{}
 	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(conf.JWTKey), nil
+		return []byte(j.JWTKey), nil
 	})
 	if err != nil {
 		return claims, err
@@ -91,7 +101,7 @@ func checkJWTClaims(r *http.Request) (*JWTClaims, error) {
 	return claims, nil
 }
 
-func checkRefreshClaims(r *http.Request) (*RefreshClaims, error) {
+func (j *JWTHelper) CheckRefreshClaims(r *http.Request) (*RefreshClaims, error) {
 	refreshCookie, err := r.Cookie("refresh")
 	if err != nil {
 		return nil, err
@@ -99,7 +109,7 @@ func checkRefreshClaims(r *http.Request) (*RefreshClaims, error) {
 	tokenString := refreshCookie.Value
 	claims := &RefreshClaims{}
 	_, err = jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(conf.JWTKey), nil
+		return []byte(j.JWTKey), nil
 	})
 	if err != nil {
 		return claims, err

@@ -2,21 +2,20 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/cheebz/go-auth/config"
-	"github.com/gorilla/mux"
-	"github.com/rs/cors"
+	"github.com/cheebz/go-auth/handlers"
+	"github.com/cheebz/go-auth/hash"
+	"github.com/cheebz/go-auth/jwt"
+	"github.com/cheebz/go-auth/repositories"
+	"github.com/cheebz/go-auth/responses"
+	"github.com/cheebz/go-auth/workers"
 )
-
-// --- Configuration --- //
-
-var conf config.Configuration
-
-// --- Main --- //
 
 func main() {
 	// Get configuration
@@ -25,35 +24,35 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	conf = c
+	conf := c
 
-	db = connectDb(conf.Db)
-	defer db.Close()
-
-	// Workers
-	go startPurgeRefresh()
-
-	// Init router
-	r := mux.NewRouter()
-	r.HandleFunc("/auth/", home).Methods("GET")
-	r.HandleFunc("/auth/login", loginPage).Methods("GET")
-	r.HandleFunc("/auth/login", login).Methods("POST")
-	r.HandleFunc("/auth/password", passwordPage).Methods("GET")
-	r.HandleFunc("/auth/password", password).Methods("POST")
-	r.HandleFunc("/auth/logout", logout).Methods("GET")
-	r.HandleFunc("/auth/logoutAll", logoutAll).Methods("GET")
-	if conf.Register {
-		r.HandleFunc("/auth/register", registerPage).Methods("GET")
-		r.HandleFunc("/auth/register", register).Methods("POST")
-	}
-
+	// create repository
+	repo := repositories.NewPSQLRepository(conf)
+	defer repo.Close()
+	// create purge refresh worker
+	purgeRefreshWorker := workers.NewPurgeRefreshWorker(repo)
+	go purgeRefreshWorker.Start()
+	// create response writer
+	response := responses.NewAuthResponses(conf.Debug)
+	// create hasher
+	hasher := hash.NewBCryptHash(14)
+	// create handler
+	jwt := jwt.NewJWTHelper(conf.JWTKey, conf.JWTMaxAge, conf.RefreshMaxAge)
+	// parse template files
+	templates := template.Must(template.ParseGlob("templates/*.html"))
+	// create handler
+	handler := handlers.NewMuxHandler(handlers.MuxHandlerConfig{
+		Conf:      conf,
+		Resp:      response,
+		Hasher:    hasher,
+		Repo:      repo,
+		JWT:       jwt,
+		Templates: templates,
+	})
 	if conf.AllowedOrigins != "" {
-		cors := cors.New(cors.Options{
-			AllowedOrigins:   strings.Split(conf.AllowedOrigins, ","),
-			AllowCredentials: true,
-		}).Handler
-		r.Use(cors)
+		handler.AllowCORS(strings.Split(conf.AllowedOrigins, ","))
 	}
+	r := handler.GetRouter()
 
 	// Run server
 	port := conf.Port

@@ -1,4 +1,4 @@
-package main
+package repositories
 
 import (
 	"context"
@@ -12,8 +12,17 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-// db instance
-var db *pgxpool.Pool
+type PSQLRepository struct {
+	Conf config.Configuration
+	Db   *pgxpool.Pool
+}
+
+func NewPSQLRepository(conf config.Configuration) Repository {
+	return &PSQLRepository{
+		Conf: conf,
+		Db:   connectDb(conf.Db),
+	}
+}
 
 // connect to db
 func connectDb(s config.DataSource) *pgxpool.Pool {
@@ -29,10 +38,14 @@ func connectDb(s config.DataSource) *pgxpool.Pool {
 	return db
 }
 
-func getUserByID(userID int) (models.User, error) {
+func (r *PSQLRepository) Close() {
+	r.Db.Close()
+}
+
+func (r *PSQLRepository) GetUserByID(userID int) (models.User, error) {
 	sql := "SELECT * FROM users WHERE id = $1;"
 	var user models.User
-	err := db.QueryRow(context.Background(), sql, userID).Scan(
+	err := r.Db.QueryRow(context.Background(), sql, userID).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Password,
@@ -45,10 +58,10 @@ func getUserByID(userID int) (models.User, error) {
 	return user, nil
 }
 
-func getUserByName(username string) (models.User, error) {
+func (r *PSQLRepository) GetUserByName(username string) (models.User, error) {
 	sql := "SELECT * FROM users WHERE username = $1;"
 	var user models.User
-	err := db.QueryRow(context.Background(), sql, username).Scan(
+	err := r.Db.QueryRow(context.Background(), sql, username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Password,
@@ -61,8 +74,8 @@ func getUserByName(username string) (models.User, error) {
 	return user, nil
 }
 
-func createUser(user models.User) (models.User, error) {
-	tx, err := db.Begin(context.Background())
+func (r *PSQLRepository) CreateUser(user models.User) (models.User, error) {
+	tx, err := r.Db.Begin(context.Background())
 	if err != nil {
 		return user, err
 	}
@@ -82,7 +95,7 @@ func createUser(user models.User) (models.User, error) {
 	return user, nil
 }
 
-func getUserGroups(userID int) ([]models.Group, error) {
+func (r *PSQLRepository) GetUserGroups(userID int) ([]models.Group, error) {
 	sql := `SELECT groups.id, groups.name
 	FROM groups 
 	INNER JOIN user_groups 
@@ -90,7 +103,7 @@ func getUserGroups(userID int) ([]models.Group, error) {
 	INNER JOIN users
 	ON users.id = user_groups.user_id
 	WHERE users.id = $1;`
-	rows, err := db.Query(context.Background(), sql, userID)
+	rows, err := r.Db.Query(context.Background(), sql, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -111,34 +124,34 @@ func getUserGroups(userID int) ([]models.Group, error) {
 	return groups, nil
 }
 
-func updatePassword(userID int, password string) error {
+func (r *PSQLRepository) UpdatePassword(userID int, password string) error {
 	sql := "UPDATE users SET password = $1 WHERE id = $2;"
 
-	_, err := db.Exec(context.Background(), sql, password, userID)
+	_, err := r.Db.Exec(context.Background(), sql, password, userID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func saveRefresh(userID int, jti string) error {
+func (r *PSQLRepository) SaveRefresh(userID int, jti string) error {
 	sql := `INSERT INTO user_refresh (user_id, jti, expires)
 	VALUES ($1, $2, current_timestamp + ($3 || ' seconds')::interval);`
 
-	_, err := db.Exec(context.Background(), sql, userID, jti, fmt.Sprintf("%d", conf.RefreshMaxAge))
+	_, err := r.Db.Exec(context.Background(), sql, userID, jti, fmt.Sprintf("%d", r.Conf.RefreshMaxAge))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateRefresh(userID int, jti string) error {
+func (r *PSQLRepository) ValidateRefresh(userID int, jti string) error {
 	sql := `SELECT 1 FROM user_refresh
 	WHERE user_id = $1
 	AND jti = $2;`
 
 	var result int
-	err := db.QueryRow(context.Background(), sql, userID, jti).Scan(&result)
+	err := r.Db.QueryRow(context.Background(), sql, userID, jti).Scan(&result)
 	if err != nil {
 		return err
 	}
@@ -149,34 +162,34 @@ func validateRefresh(userID int, jti string) error {
 }
 
 // Invalidate refresh to account for concurrent requests
-func invalidateRefresh(jti string) error {
+func (r *PSQLRepository) InvalidateRefresh(jti string) error {
 	sql := `UPDATE user_refresh
 	SET expires = current_timestamp + (2 || ' minutes')::interval
 	WHERE jti = $1;`
 
-	_, err := db.Exec(context.Background(), sql, jti)
+	_, err := r.Db.Exec(context.Background(), sql, jti)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func deleteAllRefresh(userID int) error {
+func (r *PSQLRepository) DeleteAllRefresh(userID int) error {
 	sql := `DELETE FROM user_refresh
 	WHERE user_id = $1;`
 
-	_, err := db.Exec(context.Background(), sql, userID)
+	_, err := r.Db.Exec(context.Background(), sql, userID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func deleteExpiredRefresh() error {
+func (r *PSQLRepository) DeleteExpiredRefresh() error {
 	sql := `DELETE FROM user_refresh
 	WHERE expires < current_timestamp;`
 
-	_, err := db.Exec(context.Background(), sql)
+	_, err := r.Db.Exec(context.Background(), sql)
 	if err != nil {
 		return err
 	}

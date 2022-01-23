@@ -4,16 +4,17 @@ pipeline {
         GOROOT = "${tool type: 'go', name: 'go1.15.6'}/go"
     }
     stages {
+        stage('test') {
+            steps {
+                echo 'testing...'
+                sh '$GOROOT/bin/go test github.com/cheebz/go-auth/hash'
+            }
+        }
         stage('build') {
             steps {
                 echo 'building...'
                 sh 'echo $GOROOT'
                 sh '$GOROOT/bin/go build'
-            }
-        }
-        stage('test') {
-            steps {
-                echo 'testing...'
             }
         }
         stage('deploy') {
