@@ -7,3 +7,6 @@ go-auth.exe
 
 # Database volumes
 postgres-data/*
+
+# K8s Secrets
+manifests/secrets*
