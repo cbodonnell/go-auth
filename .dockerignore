@@ -14,3 +14,6 @@ Jenkinsfile
 # Database volumes
 *.sql
 postgres-data/*
+
+# K8s Manifests
+manifests/*

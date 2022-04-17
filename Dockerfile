@@ -1,6 +1,8 @@
 # Build stage
 FROM golang:1-alpine as builder
 
+RUN apk add git
+
 RUN mkdir /app
 WORKDIR /app
 

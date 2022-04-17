@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-auth-postgres
+  labels:
+    app: go-auth-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-auth-postgres
+  template:
+    metadata:
+      labels:
+        app: go-auth-postgres
+    spec:
+      containers:
+      - name: go-auth-postgres
+        image: postgres:latest
+        resources: # TODO: Determine eventually
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          valueFrom: 
+            secretKeyRef:
+              name: go-auth-postgres
+              key: db_name
+        - name: POSTGRES_USER
+          valueFrom: 
+            secretKeyRef:
+              name: go-auth-postgres
+              key: db_user
+        - name: POSTGRES_PASSWORD
+          valueFrom: 
+            secretKeyRef:
+              name: go-auth-postgres
+              key: db_password
+        # readinessProbe:
+        #   failureThreshold: 5
+        #   exec:
+        #     command: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 5
+        volumeMounts:
+        - name: go-auth-postgres-data-volume
+          mountPath: "/var/lib/postgresql/data/"
+        - name: go-auth-postgres-initdb-volume
+          mountPath: "/docker-entrypoint-initdb.d/"
+      volumes:
+        - name: go-auth-postgres-initdb-volume
+          configMap:
+            name: go-auth-postgres-initdb
+        - name: go-auth-postgres-data-volume
+          persistentVolumeClaim:
+            claimName: go-auth-postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-auth-postgres-service
+spec:
+  selector:
+    app: go-auth-postgres
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
