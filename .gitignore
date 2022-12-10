@@ -4,9 +4,11 @@
 # Binaries
 go-auth
 go-auth.exe
+bin/
 
 # Database volumes
 postgres-data/*
+pgdata/
 
 # K8s Secrets
 manifests/secrets*
